@@ -2,8 +2,8 @@ package com.Jeka8833.packetVelocityGuesser;
 
 import com.Jeka8833.packetVelocityGuesser.composer.Composer;
 import com.Jeka8833.packetVelocityGuesser.composer.RawJump;
-import com.Jeka8833.packetVelocityGuesser.filter.DatabaseFilter;
-import com.Jeka8833.packetVelocityGuesser.game.wizards.WizardsVerticalGuesser;
+import com.Jeka8833.packetVelocityGuesser.composer.RawJumpFilter;
+import com.Jeka8833.packetVelocityGuesser.game.tntrun.TNTRunVerticalGuesser;
 import com.Jeka8833.packetVelocityGuesser.guesser.FoundedSolution;
 import com.Jeka8833.packetVelocityGuesser.guesser.Guesser;
 import com.Jeka8833.packetVelocityGuesser.output.WolframMathematica;
@@ -13,13 +13,14 @@ import com.Jeka8833.packetVelocityGuesser.parser.filter.FileFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.GameInfoFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.ParameterFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.VersionFilter;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public class MainV3 {
 
@@ -36,7 +37,12 @@ public class MainV3 {
 
                     .mode()
                     .blockIfAbsent()
-                    .require("Wizards")
+                    .require(ServerConstants.Hypixel.Mode.TNTRun)
+                    .build()
+
+                    .serverBrand()
+                    .blockIfAbsent()
+                    .require(ServerConstants.HYPIXEL_SERVER)
                     .build()
 
                     .build())
@@ -49,18 +55,30 @@ public class MainV3 {
         FilePackets[] filteredPackets = PACKET_FILTER.filter(packets);
 
         RawJump[] jumps = Composer.toRawJump(filteredPackets);
-        Collection<RawJump> filteredJumps = DatabaseFilter.filterDuplicates(
-                DatabaseFilter.filterUncompletedJumps(List.of(jumps)));
 
+        RawJump[] filteredJumps = RawJumpFilter.filterDuplicates(
+                RawJumpFilter.filterUncompletedJumps(jumps));
 
-        Guesser guesser = new Guesser(null, new WizardsVerticalGuesser());
-        Collection<@Nullable FoundedSolution> solutions = guesser.solveVertical(filteredJumps);
+        Guesser guesser = new Guesser(null, new TNTRunVerticalGuesser());
 
-        String table = WolframMathematica.toTable(solutions,
+        FoundedSolution[] solutions = guesser.solveBestOrFirstVertical(filteredJumps, 0.0001, "Unknown");
+
+        Map<String, List<FoundedSolution>> grouped = Arrays.stream(solutions)
+                .collect(Collectors.groupingBy(FoundedSolution::jumpName));
+
+        String all = WolframMathematica.toTable(solutions,
                 v -> v.position().pitch().orElseThrow(),
                 v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
+        System.out.println("All table: " + all);
 
-        System.out.println("Result: " + table);
+        grouped.forEach((s, foundedSolutions) -> {
+            String table = WolframMathematica.toTable(foundedSolutions,
+                    v -> v.position().pitch().orElseThrow(),
+                    v -> v.receiver().velY().orElseThrow(), e -> {
+                        e.printStackTrace();
+                    });
+            System.out.println("Table for " + s + ": " + table);
+        });
     }
 
 

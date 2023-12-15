@@ -59,7 +59,7 @@ public interface ResultDeviation {
 
         CallJump callJump = rawJump.calls()[0];
         long callTime = callJump.getTime(TimeUnit.NANOSECONDS);
-        for (int i = rawJump.positions().length - 1; i <= 0; i++) {
+        for (int i = rawJump.positions().length - 1; i >= 0; i--) {
             PlayerCamera playerCamera = rawJump.positions()[i];
 
             if (playerCamera.getTime(TimeUnit.NANOSECONDS) < callTime) {
@@ -78,5 +78,18 @@ public interface ResultDeviation {
         }
 
         return null;
+    }
+
+    @Nullable
+    default FoundedSolution findBestOrFirst(@NotNull RawJump rawJump, double minError, @NotNull String unknownName) {
+        FoundedSolution solution = findBestApproximation(rawJump);
+        if (solution != null && solution.error() < minError) return solution;
+
+        solution = findFirst(rawJump);
+
+        if (solution == null) return null;
+
+        return new FoundedSolution(unknownName, solution.caller(),
+                solution.receiver(), solution.position(), solution.error());
     }
 }
