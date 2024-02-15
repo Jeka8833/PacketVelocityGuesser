@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 public record RawJump(@NotNull Path file,
                       @NotNull CallJump @NotNull [] calls,
@@ -20,7 +19,7 @@ public record RawJump(@NotNull Path file,
         Pair<CallJump, Double> minDelay = null;
 
         for (CallJump callJump : calls) {
-            double delay = callJump.getTime(TimeUnit.NANOSECONDS) - playerCamera.getTime(TimeUnit.NANOSECONDS);
+            double delay = callJump.time().orElseThrow() - playerCamera.time().orElseThrow();
             if (delay <= 0) continue;
 
             if (minDelay == null || delay < minDelay.second()) {
@@ -36,7 +35,7 @@ public record RawJump(@NotNull Path file,
         Pair<CallJump, Double> minDelay = getCall(playerCamera);
 
         if (minDelay == null && calls.length != 0) {
-            double delay = calls[0].getTime(TimeUnit.NANOSECONDS) - playerCamera.getTime(TimeUnit.NANOSECONDS);
+            double delay = calls[0].time().orElseThrow() - playerCamera.time().orElseThrow();
 
             return new Pair<>(calls[0], delay);
         }

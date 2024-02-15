@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Stream;
 
-public class FileParser {
+public class CsvFileParser {
 
     public static final CSVFormat DEFAULT_TNTCLIENT_FORMAT = CSVFormat.EXCEL.builder()
             .setNullString(null)
@@ -41,25 +41,25 @@ public class FileParser {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newVirtualThreadPerTaskExecutor();
 
 
-    private static final Logger LOGGER = LogManager.getLogger(FileParser.class);
+    private static final Logger LOGGER = LogManager.getLogger(CsvFileParser.class);
 
     private final Map<String, Class<? extends Packet>> packetNames;
     private final CSVFormat fileformat;
 
-    public FileParser() {
+    public CsvFileParser() {
         this(DEFAULT_TNTCLIENT_PACKET_LIST, DEFAULT_TNTCLIENT_FORMAT);
     }
 
-    public FileParser(@NotNull Map<@NotNull String, @NotNull Class<? extends Packet>> packetNames) {
+    public CsvFileParser(@NotNull Map<@NotNull String, @NotNull Class<? extends Packet>> packetNames) {
         this(packetNames, DEFAULT_TNTCLIENT_FORMAT);
     }
 
-    public FileParser(@NotNull CSVFormat fileformat) {
+    public CsvFileParser(@NotNull CSVFormat fileformat) {
         this(DEFAULT_TNTCLIENT_PACKET_LIST, fileformat);
     }
 
-    public FileParser(@NotNull Map<@NotNull String, @NotNull Class<? extends Packet>> packetNames,
-                      @NotNull CSVFormat fileformat) {
+    public CsvFileParser(@NotNull Map<@NotNull String, @NotNull Class<? extends Packet>> packetNames,
+                         @NotNull CSVFormat fileformat) {
         this.packetNames = packetNames;
         this.fileformat = fileformat;
     }

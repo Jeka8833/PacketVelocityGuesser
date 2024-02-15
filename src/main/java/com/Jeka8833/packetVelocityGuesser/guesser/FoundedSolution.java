@@ -17,7 +17,7 @@ public record FoundedSolution(@Nullable String jumpName, @Nullable CallJump call
     public Optional<Long> getPing(@NotNull TimeUnit timeUnit) {
         if (caller == null || receiver == null) return Optional.empty();
 
-        long time = receiver.getTime(TimeUnit.NANOSECONDS) - caller.getTime(TimeUnit.NANOSECONDS);
+        long time = receiver.time().orElseThrow() - caller.time().orElseThrow();
         if (time < 0) return Optional.empty();
 
         return Optional.of(timeUnit.convert(time, TimeUnit.NANOSECONDS));

@@ -2,12 +2,12 @@ package com.Jeka8833.packetVelocityGuesser.parser.packet;
 
 import com.Jeka8833.packetVelocityGuesser.parser.CSVRecordExtender;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.ParameterState;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 public record PlayerCamera(Optional<Long> time, Optional<BigDecimal> x, Optional<BigDecimal> y,
                            Optional<BigDecimal> z, Optional<BigDecimal> pitch, Optional<BigDecimal> yaw,
@@ -36,9 +36,15 @@ public record PlayerCamera(Optional<Long> time, Optional<BigDecimal> x, Optional
                 record.getBoolean("OnGround"));
     }
 
-    @Contract(pure = true)
-    public long getTime(@NotNull TimeUnit timeUnit) {
-        return timeUnit.convert(time.orElseThrow(), TimeUnit.NANOSECONDS);
+    @SuppressWarnings("unused")
+    public PlayerCamera(DataInputStream stream) throws IOException {
+        this(Optional.of(stream.readLong()),
+                Optional.of(new BigDecimal(stream.readDouble())),
+                Optional.of(new BigDecimal(stream.readDouble())),
+                Optional.of(new BigDecimal(stream.readDouble())),
+                Optional.of(new BigDecimal(stream.readFloat())),
+                Optional.of(new BigDecimal(stream.readFloat())),
+                Optional.of(stream.readBoolean()));
     }
 
     public double yawCos() {

@@ -4,9 +4,11 @@ import com.Jeka8833.packetVelocityGuesser.parser.CSVRecordExtender;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.ParameterState;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.Optional;
 
-public record GameInfo(Optional<String> serverBrand, Optional<String> gametype,
+public record GameInfo(Optional<Long> time, Optional<String> serverBrand, Optional<String> gametype,
                        Optional<String> map, Optional<String> mode) implements Packet {
 
     public static final String FILTER_TIME = "gameinfo.serverbrand";
@@ -16,10 +18,20 @@ public record GameInfo(Optional<String> serverBrand, Optional<String> gametype,
 
     @SuppressWarnings("unused")
     public GameInfo(@NotNull CSVRecordExtender record) {
-        this(record.tryGet("ServerBrand"),
+        this(record.getLong("Time"),
+                record.tryGet("ServerBrand"),
                 record.tryGet("GameType"),
                 record.tryGet("Map"),
                 record.tryGet("Mode"));
+    }
+
+    @SuppressWarnings("unused")
+    public GameInfo(DataInputStream stream) throws IOException {
+        this(Optional.of(stream.readLong()),
+                Optional.of(stream.readUTF()),
+                Optional.of(stream.readUTF()),
+                Optional.of(stream.readUTF()),
+                Optional.of(stream.readUTF()));
     }
 
     @NotNull

@@ -49,6 +49,7 @@ public class VersionFilter implements FileFilterAddon {
             }
         }
 
+        if (allowIfNoVersion) return filePackets;
         return null;
     }
 

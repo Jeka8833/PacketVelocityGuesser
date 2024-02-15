@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public interface ResultDeviation {
 
@@ -58,11 +57,11 @@ public interface ResultDeviation {
         if (rawJump.calls().length == 0 || rawJump.jumps().length == 0) return null;
 
         CallJump callJump = rawJump.calls()[0];
-        long callTime = callJump.getTime(TimeUnit.NANOSECONDS);
+        long callTime = callJump.time().orElseThrow();
         for (int i = rawJump.positions().length - 1; i >= 0; i--) {
             PlayerCamera playerCamera = rawJump.positions()[i];
 
-            if (playerCamera.getTime(TimeUnit.NANOSECONDS) < callTime) {
+            if (playerCamera.time().orElseThrow() - callTime < 0) {
                 MinErrorValue minError = getMinError(new PlayerCamera[]{playerCamera}, rawJump.jumps());
 
                 if (minError == null) {

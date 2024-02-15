@@ -8,7 +8,8 @@ import com.Jeka8833.packetVelocityGuesser.guesser.FoundedSolution;
 import com.Jeka8833.packetVelocityGuesser.guesser.Guesser;
 import com.Jeka8833.packetVelocityGuesser.output.WolframMathematica;
 import com.Jeka8833.packetVelocityGuesser.parser.FilePackets;
-import com.Jeka8833.packetVelocityGuesser.parser.FileParser;
+import com.Jeka8833.packetVelocityGuesser.parser.CsvFileParser;
+import com.Jeka8833.packetVelocityGuesser.parser.ServerStorageFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.FileFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.GameInfoFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.ParameterFilter;
@@ -24,8 +25,10 @@ import java.util.stream.Collectors;
 
 public class MainV3 {
 
-    private static final Path PATH = TNTClient.getRecorderPath();
-    private static final FileParser FILE_PARSER = new FileParser();
+    //private static final Path PATH = TNTClient.getRecorderPath();
+    private static final Path PATH = Path.of("D:\\User\\Download\\jumpdata\\");
+    private static final CsvFileParser CSV_PARSER = new CsvFileParser();
+    private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
     private static final FileFilter PACKET_FILTER = FileFilter.create()
             .add(ParameterFilter.create()
                     .allowIfAbsent()
@@ -49,8 +52,8 @@ public class MainV3 {
             .build();
 
     public static void main(String[] args) throws IOException, ExecutionException {
-        Path[] files = FileParser.getAllFilesInFolder(PATH);
-        FilePackets[] packets = FILE_PARSER.parseAllFiles(files, false);
+        Path[] files = CsvFileParser.getAllFilesInFolder(PATH);
+        FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, false);
 
         FilePackets[] filteredPackets = PACKET_FILTER.filter(packets);
 
@@ -61,7 +64,7 @@ public class MainV3 {
 
         Guesser guesser = new Guesser(null, new TNTRunVerticalGuesser());
 
-        FoundedSolution[] solutions = guesser.solveBestOrFirstVertical(filteredJumps, 0.0001, "Unknown");
+        FoundedSolution[] solutions = guesser.solveBestOrFirstVertical(filteredJumps, 0.001, "Unknown");
 
         Map<String, List<FoundedSolution>> grouped = Arrays.stream(solutions)
                 .collect(Collectors.groupingBy(FoundedSolution::jumpName));

@@ -2,11 +2,11 @@ package com.Jeka8833.packetVelocityGuesser.parser.packet;
 
 import com.Jeka8833.packetVelocityGuesser.parser.CSVRecordExtender;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.ParameterState;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 public record ReceivedJump(Optional<Long> time, Optional<Integer> velX, Optional<Integer> velY,
                            Optional<Integer> velZ) implements Packet {
@@ -25,9 +25,12 @@ public record ReceivedJump(Optional<Long> time, Optional<Integer> velX, Optional
                 record.getInteger("JumpVelZ"));
     }
 
-    @Contract(pure = true)
-    public long getTime(@NotNull TimeUnit timeUnit) {
-        return timeUnit.convert(time.orElseThrow(), TimeUnit.NANOSECONDS);
+    @SuppressWarnings("unused")
+    public ReceivedJump(DataInputStream stream) throws IOException {
+        this(Optional.of(stream.readLong()),
+                Optional.of(stream.readInt()),
+                Optional.of(stream.readInt()),
+                Optional.of(stream.readInt()));
     }
 
     public double engineVelX() {
