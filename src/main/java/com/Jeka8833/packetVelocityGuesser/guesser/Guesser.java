@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
 
-public record Guesser(HorizontalJump horizontalGuesser, VerticalJump verticalGuesser) {
+public record Guesser(@Nullable HorizontalJump horizontalGuesser, @Nullable VerticalJump verticalGuesser) {
 
     @Contract("null, null -> fail")
     public Guesser {
@@ -18,15 +18,14 @@ public record Guesser(HorizontalJump horizontalGuesser, VerticalJump verticalGue
     @Nullable
     @Contract("_ -> new")
     public FoundedSolution @NotNull [] solveBest(@NotNull RawJump @NotNull [] data) {
-        if (horizontalGuesser == null || verticalGuesser == null)
-            throw new IllegalArgumentException("Both guessers can't be null");
-
         var solutions = new FoundedSolution[data.length];
         for (int i = 0; i < data.length; i++) {
             RawJump rawJump = data[i];
 
-            FoundedSolution vertical = verticalGuesser.findBestApproximation(rawJump);
-            FoundedSolution horizontal = horizontalGuesser.findBestApproximation(rawJump);
+            FoundedSolution vertical = verticalGuesser != null ?
+                    verticalGuesser.findBestApproximation(rawJump) : null;
+            FoundedSolution horizontal = horizontalGuesser != null ?
+                    horizontalGuesser.findBestApproximation(rawJump) : null;
 
             if (vertical != null && horizontal != null) {
                 solutions[i] = (vertical.error() < horizontal.error()) ? vertical : horizontal;
@@ -41,15 +40,14 @@ public record Guesser(HorizontalJump horizontalGuesser, VerticalJump verticalGue
     @Contract("_, _, _ -> new")
     public FoundedSolution @NotNull [] solveBestOrFirst(@NotNull RawJump @NotNull [] data,
                                                         double maxError, @NotNull String unknownName) {
-        if (horizontalGuesser == null || verticalGuesser == null)
-            throw new IllegalArgumentException("Both guessers can't be null");
-
         var solutions = new FoundedSolution[data.length];
         for (int i = 0; i < data.length; i++) {
             RawJump rawJump = data[i];
 
-            FoundedSolution vertical = verticalGuesser.findBestApproximation(rawJump);
-            FoundedSolution horizontal = horizontalGuesser.findBestApproximation(rawJump);
+            FoundedSolution vertical = verticalGuesser != null ?
+                    verticalGuesser.findBestApproximation(rawJump) : null;
+            FoundedSolution horizontal = horizontalGuesser != null ?
+                    horizontalGuesser.findBestApproximation(rawJump) : null;
 
             boolean isVertical = vertical != null && vertical.error() <= maxError;
             boolean isHorizontal = horizontal != null && horizontal.error() <= maxError;
@@ -61,8 +59,8 @@ public record Guesser(HorizontalJump horizontalGuesser, VerticalJump verticalGue
             } else if (isHorizontal) {
                 solutions[i] = horizontal;
             } else {
-                vertical = verticalGuesser.findFirst(rawJump);
-                horizontal = horizontalGuesser.findFirst(rawJump);
+                vertical = verticalGuesser != null ? verticalGuesser.findFirst(rawJump) : null;
+                horizontal = horizontalGuesser != null ? horizontalGuesser.findFirst(rawJump) : null;
 
                 if (vertical != null && horizontal != null) {
                     solutions[i] = (vertical.error() < horizontal.error()) ? vertical : horizontal;

@@ -62,7 +62,7 @@ public class WolframMathematica {
                                          @NotNull Function<@Nullable Value, @Nullable Object> x,
                                          @NotNull Function<@Nullable Value, @Nullable Object> y,
                                          @Nullable Consumer<@NotNull Exception> exceptionConsumer) {
-        return toTable(List.of(values), x, y, exceptionConsumer);
+        return toTable(Arrays.asList(values), x, y, exceptionConsumer);
     }
 
     @NotNull
@@ -99,7 +99,7 @@ public class WolframMathematica {
 
     @NotNull
     @Contract(value = "_ -> new", pure = true)
-    private static String formatEntry(@NotNull Object @NotNull [] items) {
+    public static String formatEntry(@NotNull Object @NotNull [] items) {
         var stringJoiner = new StringJoiner(",", "{", "}");
         for (Object item : items) {
             stringJoiner.add(maxPrecision(item));
@@ -113,13 +113,22 @@ public class WolframMathematica {
     private static String maxPrecision(@Nullable Object object) {
         switch (object) {
             case BigDecimal bigDecimal -> {
-                return bigDecimal.toPlainString() + '`';
+                String textValue = bigDecimal.toPlainString();
+                if (textValue.contains(".")) return textValue + '`';
+
+                return textValue;
             }
             case Double d -> {
-                return new BigDecimal(d).toPlainString() + '`';
+                String textValue = new BigDecimal(d).toPlainString();
+                if (textValue.contains(".")) return textValue + '`';
+
+                return textValue;
             }
             case Float f -> {
-                return new BigDecimal(f).toPlainString() + '`';
+                String textValue = new BigDecimal(f).toPlainString();
+                if (textValue.contains(".")) return textValue + '`';
+
+                return textValue;
             }
             case null -> {
                 return null;

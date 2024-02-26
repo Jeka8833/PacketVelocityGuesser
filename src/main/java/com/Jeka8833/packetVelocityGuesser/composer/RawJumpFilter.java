@@ -6,13 +6,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 
 public class RawJumpFilter {
 
     @Contract(value = "_ -> new", pure = true)
-    public static @Nullable RawJump @NotNull [] filterUncompletedJumps(@Nullable RawJump @NotNull [] database) {
+    public static @NotNull RawJump @NotNull [] filterUncompletedJumps(@Nullable RawJump @NotNull [] database) {
         return Arrays.stream(database)
                 .filter(Objects::nonNull)
                 .filter(rawJump -> rawJump.calls().length != 0 &&
@@ -22,9 +21,9 @@ public class RawJumpFilter {
 
 
     @Contract(value = "_ -> new", pure = true)
-    public static @Nullable RawJump @NotNull [] filterDuplicates(@Nullable RawJump @NotNull [] database) {
-        var set = new HashSet<>(List.of(database));
+    public static @NotNull RawJump @NotNull [] filterDuplicates(@Nullable RawJump @NotNull [] database) {
+        var set = new HashSet<>(Arrays.asList(database));
 
-        return set.toArray(RawJump[]::new);
+        return set.stream().filter(Objects::nonNull).toArray(RawJump[]::new);
     }
 }

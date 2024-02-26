@@ -6,11 +6,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.Optional;
 
-public record PlayerCamera(Optional<Long> time, Optional<BigDecimal> x, Optional<BigDecimal> y,
-                           Optional<BigDecimal> z, Optional<BigDecimal> pitch, Optional<BigDecimal> yaw,
+public record PlayerCamera(Optional<Long> time, Optional<Double> x, Optional<Double> y,
+                           Optional<Double> z, Optional<Float> pitch, Optional<Float> yaw,
                            Optional<Boolean> onGround)
         implements Packet {
 
@@ -22,41 +21,38 @@ public record PlayerCamera(Optional<Long> time, Optional<BigDecimal> x, Optional
     public static final String FILTER_YAW = "playercamera.yaw";
     public static final String FILTER_GROUND = "playercamera.onground";
 
-    private static final BigDecimal DEGREES_TO_RADIANS = new BigDecimal("0.0174532925199432957692369076848861271" +
-            "3442871888541725456097191440171009114603449443682241569634509482"); // Pi / 180
-
     @SuppressWarnings("unused")
     public PlayerCamera(@NotNull CSVRecordExtender record) {
         this(record.getLong("Time"),
-                record.getBigDecimal("PosX"),
-                record.getBigDecimal("PosY"),
-                record.getBigDecimal("PosZ"),
-                record.getBigDecimal("Pitch"),
-                record.getBigDecimal("Yaw"),
+                record.getDouble("PosX"),
+                record.getDouble("PosY"),
+                record.getDouble("PosZ"),
+                record.getFloat("Pitch"),
+                record.getFloat("Yaw"),
                 record.getBoolean("OnGround"));
     }
 
     @SuppressWarnings("unused")
     public PlayerCamera(DataInputStream stream) throws IOException {
         this(Optional.of(stream.readLong()),
-                Optional.of(new BigDecimal(stream.readDouble())),
-                Optional.of(new BigDecimal(stream.readDouble())),
-                Optional.of(new BigDecimal(stream.readDouble())),
-                Optional.of(new BigDecimal(stream.readFloat())),
-                Optional.of(new BigDecimal(stream.readFloat())),
+                Optional.of(stream.readDouble()),
+                Optional.of(stream.readDouble()),
+                Optional.of(stream.readDouble()),
+                Optional.of(stream.readFloat()),
+                Optional.of(stream.readFloat()),
                 Optional.of(stream.readBoolean()));
     }
 
     public double yawCos() {
-        return Math.cos(yaw.orElseThrow().multiply(DEGREES_TO_RADIANS).doubleValue());
+        return Math.cos(Math.toRadians(yaw.orElseThrow()));
     }
 
     public double yawSin() {
-        return Math.sin(yaw.orElseThrow().multiply(DEGREES_TO_RADIANS).doubleValue());
+        return Math.sin(Math.toRadians(yaw.orElseThrow()));
     }
 
     public double pitchSin() {
-        return Math.sin(pitch.orElseThrow().multiply(DEGREES_TO_RADIANS).doubleValue());
+        return Math.sin(Math.toRadians(pitch.orElseThrow()));
     }
 
     @NotNull

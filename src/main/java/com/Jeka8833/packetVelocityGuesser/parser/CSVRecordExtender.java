@@ -57,6 +57,32 @@ public record CSVRecordExtender(@NotNull CSVRecord record) {
 
     @NotNull
     @Contract(value = "_ -> new", pure = true)
+    public Optional<Double> getDouble(@NotNull String name) {
+        Optional<String> value = tryGet(name);
+        if (value.isEmpty()) return Optional.empty();
+
+        try {
+            return Optional.of(new BigDecimal(value.get()).doubleValue());
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
+    @NotNull
+    @Contract(value = "_ -> new", pure = true)
+    public Optional<Float> getFloat(@NotNull String name) {
+        Optional<String> value = tryGet(name);
+        if (value.isEmpty()) return Optional.empty();
+
+        try {
+            return Optional.of(new BigDecimal(value.get()).floatValue());
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
+    @NotNull
+    @Contract(value = "_ -> new", pure = true)
     public Optional<String> tryGet(@NotNull String name) {
         if (!record.isSet(name)) return Optional.empty();
 

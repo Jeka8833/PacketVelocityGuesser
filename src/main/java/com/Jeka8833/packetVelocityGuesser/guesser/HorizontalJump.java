@@ -18,28 +18,20 @@ public interface HorizontalJump extends ResultDeviation {
         for (Map.Entry<String, InputConstant> entry : getExpectedValues().entrySet()) {
             InputConstant constant = entry.getValue();
 
-            double error;
-            if (constant.isTunnel()) {
-                double errorX = constant.getOffsetTunnel() -
-                        playerCamera.yawSin() * constant.getMultiplierTunnel() - jump.velX().orElseThrow();
-                double errorY = constant.getOffsetTunnel() -
-                        playerCamera.yawCos() * constant.getMultiplierTunnel() - jump.velY().orElseThrow();
+            double errorX = constant.getOffsetTunnel() -
+                    playerCamera.yawSin() * constant.getMultiplierTunnel() - jump.velX().orElseThrow();
+            double errorY = constant.getOffsetTunnel() -
+                    playerCamera.yawCos() * constant.getMultiplierTunnel() - jump.velY().orElseThrow();
 
-                error = Math.sqrt(errorX * errorX + errorY * errorY);
-            } else {
-                double errorX = constant.getOffsetEngine() -
-                        playerCamera.yawSin() * constant.getMultiplierEngine() - jump.engineVelX();
-                double errorY = constant.getOffsetEngine() -
-                        playerCamera.yawCos() * constant.getMultiplierEngine() - jump.engineVelY();
-
-                error = Math.sqrt(errorX * errorX + errorY * errorY);
-            }
+            double error = errorX * errorX + errorY * errorY;
 
             if (minError == null || error < minError.error()) {
                 minError = new MinErrorValue(entry.getKey(), error, playerCamera, jump);
             }
         }
 
-        return minError;
+        if (minError == null) return null;
+
+        return new MinErrorValue(minError.name(), Math.sqrt(minError.error()), minError.playerCamera(), minError.jump());
     }
 }
