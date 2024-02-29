@@ -18,10 +18,10 @@ public interface HorizontalJump extends ResultDeviation {
         for (Map.Entry<String, InputConstant> entry : getExpectedValues().entrySet()) {
             InputConstant constant = entry.getValue();
 
-            double errorX = constant.getOffsetTunnel() -
-                    playerCamera.yawSin() * constant.getMultiplierTunnel() - jump.velX().orElseThrow();
-            double errorY = constant.getOffsetTunnel() -
-                    playerCamera.yawCos() * constant.getMultiplierTunnel() - jump.velY().orElseThrow();
+            double errorX = playerCamera.yawSin() * constant.getMultiplierTunnel() -
+                    jump.velX().orElseThrow() / playerCamera.pitchCos();
+            double errorY = playerCamera.yawCos() * constant.getMultiplierTunnel() -
+                    jump.velY().orElseThrow() / playerCamera.pitchCos();
 
             double error = errorX * errorX + errorY * errorY;
 

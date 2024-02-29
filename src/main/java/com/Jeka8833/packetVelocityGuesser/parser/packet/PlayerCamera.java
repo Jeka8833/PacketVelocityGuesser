@@ -51,6 +51,10 @@ public record PlayerCamera(Optional<Long> time, Optional<Double> x, Optional<Dou
         return Math.sin(Math.toRadians(yaw.orElseThrow()));
     }
 
+    public double pitchCos() {
+        return Math.cos(Math.toRadians(pitch.orElseThrow()));
+    }
+
     public double pitchSin() {
         return Math.sin(Math.toRadians(pitch.orElseThrow()));
     }
