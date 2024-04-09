@@ -7,17 +7,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public interface VerticalJump extends ResultDeviation {
 
-    long MINIMAL_PING = TimeUnit.MILLISECONDS.toNanos(15);
 
     @Nullable
     @Override
     default MinErrorValue getMinError(@NotNull PlayerCamera playerCamera, @NotNull ReceivedJump jump) {
-        if (jump.time().orElseThrow() - playerCamera.time().orElseThrow() < MINIMAL_PING) return null;
-
         MinErrorValue minError = null;
 
         for (Map.Entry<String, InputConstant> entry : getExpectedValues().entrySet()) {

@@ -1,6 +1,7 @@
 package com.Jeka8833.packetVelocityGuesser.game.tntrun;
 
 import com.Jeka8833.packetVelocityGuesser.ServerConstants;
+import com.Jeka8833.packetVelocityGuesser.TNTClient;
 import com.Jeka8833.packetVelocityGuesser.composer.Composer;
 import com.Jeka8833.packetVelocityGuesser.composer.RawJump;
 import com.Jeka8833.packetVelocityGuesser.composer.RawJumpFilter;
@@ -12,6 +13,9 @@ import com.Jeka8833.packetVelocityGuesser.parser.FilePackets;
 import com.Jeka8833.packetVelocityGuesser.parser.ServerStorageFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.FileFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.GameInfoFilter;
+import com.Jeka8833.packetVelocityGuesser.parser.packet.PlayerCamera;
+import com.Jeka8833.packetVelocityGuesser.parser.packet.ReceivedJump;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -23,7 +27,8 @@ import java.util.stream.Collectors;
 
 public class TNTRunXZTest {
 
-    private static final Path PATH = Path.of("D:\\User\\Download\\jumps\\");
+    //private static final Path PATH = Path.of("D:\\User\\Download\\newJumps\\");
+    private static final Path PATH = TNTClient.getRecorderPath().resolve("08.04.2024 19.02.csv");
     private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
     private static final Guesser GUESSER = new Guesser(null, new TNTRunVerticalGuesser());
     private static final FileFilter PACKET_FILTER = FileFilter.create()
@@ -43,14 +48,18 @@ public class TNTRunXZTest {
 
     private static RawJump[] readTestFiles() throws IOException, ExecutionException {
         Path[] files = CsvFileParser.getAllFilesInFolder(PATH);
-        FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, false);
+        //FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, false);
+        FilePackets[] packets = new CsvFileParser().parseAllFiles(new Path[]{PATH}, false);
 
-        FilePackets[] filteredPackets = PACKET_FILTER.filter(packets);
+        //packets = PACKET_FILTER.filter(packets);
 
-        RawJump[] jumps = Composer.toRawJump(filteredPackets);
+        RawJump[] jumps = Composer.toRawJump(packets);
 
+        //jumps = RawJumpFilter.filterDuplicates(jumps);
+        //jumps = RawJumpFilter.filterZeroRotation(jumps);
+        //jumps = RawJumpFilter.filterFutureCamera(jumps);
         jumps = RawJumpFilter.filterUncompletedJumps(jumps);
-        jumps = RawJumpFilter.filterDuplicates(jumps);
+
         return jumps;
     }
 
@@ -96,21 +105,62 @@ public class TNTRunXZTest {
     }
 
     @Test
+    public void predictXY() {
+        System.out.println(TNTRunEndCalculation.getJump(250, 0, 0, new TNTRunEndCalculation.Velocity(0,0, 0), false).z() * 8000);
+        System.out.println(TNTRunEndCalculation.getJump(250, 0, 0, new TNTRunEndCalculation.Velocity(0,0, 0), true).z() * 8000);
+    }
+
+    @Test
     public void allJumpFit() throws IOException, ExecutionException {
         RawJump[] jumps = readTestFiles();
 
-        FoundedSolution[] solutions = GUESSER.solveBest(jumps);
+        FoundedSolution[] solutions = GUESSER.solveBestOrFirstVertical(jumps, 2, "Unknown");
 
         solutions = TNTRunVerticalGuesser.filterDuplicatesPosition(solutions);
 
         Map<String, List<FoundedSolution>> grouped = Arrays.stream(solutions)
                 .filter(Objects::nonNull)
+                .filter(foundedSolution -> !foundedSolution.jumpName().equals("Unknown"))
+                //.filter(foundedSolution -> foundedSolution.position() != null && foundedSolution.position().onGround().orElse(false))
                 .collect(Collectors.groupingBy(FoundedSolution::jumpName));
 
-        grouped.forEach((s, foundedSolutions) -> {
-            if (!s.equals("Jump 1")) return;
+        double scale = 0;
 
-            String table = printXZTable(foundedSolutions);
+        grouped.forEach((s, foundedSolutions) -> {
+            if (!s.equals("Jump 4")) return;
+
+
+            FoundedSolution[] foundedSolutions1 = new FoundedSolution[foundedSolutions.size()];
+            for (int i = 0, foundedSolutionsSize = foundedSolutions.size(); i < foundedSolutionsSize; i++) {
+                FoundedSolution foundedSolution = foundedSolutions.get(i);
+                boolean found = false;
+                for (RawJump rawJump : jumps) {
+                    @NotNull PlayerCamera @NotNull [] positions = rawJump.positions();
+                    for (int j = 1; j < positions.length; j++) {
+                        PlayerCamera playerCamera = positions[j];
+                        if (foundedSolution.position() == playerCamera) {
+                            int velocityX = (int) (foundedSolution.receiver().velX().orElseThrow() +
+                                    (playerCamera.x().orElseThrow() - positions[j - 1].x().orElseThrow()) * scale);
+                            int velocityZ = (int) (foundedSolution.receiver().velZ().orElseThrow() +
+                                    (playerCamera.z().orElseThrow() - positions[j - 1].z().orElseThrow()) * scale);
+
+                            foundedSolutions1[i] = new FoundedSolution(foundedSolution.jumpName(),
+                                    foundedSolution.caller(), new ReceivedJump(foundedSolution.receiver().time(),
+                                    Optional.of(velocityX), foundedSolution.receiver().velY(), Optional.of(velocityZ)),
+                                    foundedSolution.position(), foundedSolution.error());
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+
+                    foundedSolutions1[i] = foundedSolution;
+                }
+            }
+
+
+            String table = printXZTable(List.of(foundedSolutions1));
+            //String table = printXZTable(foundedSolutions);
 
             try {
                 Files.write(Path.of("D:\\User\\Download\\calculations\\result.txt"), table.getBytes());

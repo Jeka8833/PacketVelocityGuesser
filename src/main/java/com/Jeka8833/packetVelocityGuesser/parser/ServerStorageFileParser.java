@@ -63,7 +63,8 @@ public class ServerStorageFileParser {
         for (Path file : files) {
             tasks.add(() -> readFile(file));
         }
-        List<Future<FilePackets>> futures = executorService.invokeAll(tasks);
+
+        Collection<Future<FilePackets>> futures = executorService.invokeAll(tasks);
 
         Collection<FilePackets> database = new ArrayList<>();
         for (Future<FilePackets> future : futures) {
@@ -85,15 +86,15 @@ public class ServerStorageFileParser {
     @Blocking
     @Contract(value = "_ -> new", pure = true)
     public FilePackets readFile(@NotNull Path file) throws IOException, NoSuchMethodException {
-        if (!Files.isRegularFile(file)) throw new IOException("File is not regular file");
-        if (!Files.isReadable(file)) throw new IOException("File is not readable");
+        if (!Files.isRegularFile(file)) throw new IOException("File is not regular file: " + file);
+        if (!Files.isReadable(file)) throw new IOException("File is not readable: " + file);
 
         Collection<Packet> packets = new ArrayList<>();
 
         try (InputStream inputStream = Files.newInputStream(file);
              DataInputStream dataStream = new DataInputStream(new BufferedInputStream(inputStream))) {
 
-            if (!hasHeader(dataStream)) throw new IOException("File has no header");
+            if (!hasHeader(dataStream)) throw new IOException("File has no header: " + file);
 
             long timeCreateFile = dataStream.readLong();
 
@@ -106,7 +107,13 @@ public class ServerStorageFileParser {
                         .newInstance(dataStream);
                 packets.add(packet);
             }
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | OutOfMemoryError e) {
+            if (e instanceof OutOfMemoryError) {
+                System.err.println("FATAL::Out of memory");
+
+                System.exit(0);
+            }
+
             throw new NoSuchMethodException(e.getMessage());
         }
 

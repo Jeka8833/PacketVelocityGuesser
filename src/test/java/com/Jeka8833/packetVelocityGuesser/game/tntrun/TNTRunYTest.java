@@ -1,11 +1,13 @@
 package com.Jeka8833.packetVelocityGuesser.game.tntrun;
 
 import com.Jeka8833.packetVelocityGuesser.ServerConstants;
+import com.Jeka8833.packetVelocityGuesser.TNTClient;
 import com.Jeka8833.packetVelocityGuesser.composer.Composer;
 import com.Jeka8833.packetVelocityGuesser.composer.RawJump;
 import com.Jeka8833.packetVelocityGuesser.composer.RawJumpFilter;
 import com.Jeka8833.packetVelocityGuesser.guesser.FoundedSolution;
 import com.Jeka8833.packetVelocityGuesser.guesser.Guesser;
+import com.Jeka8833.packetVelocityGuesser.guesser.input.InputTunnelConstants;
 import com.Jeka8833.packetVelocityGuesser.output.WolframMathematica;
 import com.Jeka8833.packetVelocityGuesser.parser.CsvFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.FilePackets;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class TNTRunYTest {
 
     private static final Path PATH = Path.of("D:\\User\\Download\\jumps\\");
+    //private static final Path PATH = TNTClient.getRecorderPath().resolve("04.03.2024 22.04.csv");
     private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
     private static final Guesser GUESSER = new Guesser(null, new TNTRunVerticalGuesser());
     private static final FileFilter PACKET_FILTER = FileFilter.create()
@@ -44,13 +47,17 @@ public class TNTRunYTest {
     private static RawJump[] readTestFiles() throws IOException, ExecutionException {
         Path[] files = CsvFileParser.getAllFilesInFolder(PATH);
         FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, false);
+        //FilePackets[] packets = new CsvFileParser().parseAllFiles(new Path[]{PATH}, false);
 
-        FilePackets[] filteredPackets = PACKET_FILTER.filter(packets);
+        packets = PACKET_FILTER.filter(packets);
 
-        RawJump[] jumps = Composer.toRawJump(filteredPackets);
+        RawJump[] jumps = Composer.toRawJump(packets);
 
-        jumps = RawJumpFilter.filterUncompletedJumps(jumps);
         jumps = RawJumpFilter.filterDuplicates(jumps);
+        jumps = RawJumpFilter.filterZeroRotation(jumps);
+        jumps = RawJumpFilter.filterFutureCamera(jumps);
+        jumps = RawJumpFilter.filterUncompletedJumps(jumps);
+
         return jumps;
     }
 
@@ -60,6 +67,14 @@ public class TNTRunYTest {
             double max = TNTRunCalculation.calcJumpHeight(i, -90);
             double min = TNTRunCalculation.calcJumpHeight(i, 90);
             System.out.println("Jump " + i + " max: " + max + " min: " + min);
+        }
+    }
+
+    @Test
+    public void printAllJumps() {
+        for (int i = 1; i < 20; i++) {
+            InputTunnelConstants constant = TNTRunCalculation.getYConstant(i);
+            System.out.println(constant.multiplier() + " " + constant.offset());
         }
     }
 
@@ -133,11 +148,8 @@ public class TNTRunYTest {
                 } catch (Exception ignored) {
                 }
             }
-            String temp = '{' + objects.stream()
-                    .map(Object::toString)
-                    .collect(Collectors.joining(",")) + '}';
 
-            objects_[jump - 1] = temp;
+            objects_[jump - 1] = WolframMathematica.formatEntry(objects.toArray(Object[]::new));
         });
 
         String pings = WolframMathematica.formatEntry(objects_);
@@ -148,7 +160,7 @@ public class TNTRunYTest {
     public void maxMinHeight() throws IOException, ExecutionException {
         RawJump[] jumps = readTestFiles();
 
-        FoundedSolution[] solutions = GUESSER.solveBestOrFirstVertical(jumps, 2, "Unknown");
+        FoundedSolution[] solutions = GUESSER.solveBestOrFirstVertical(jumps, 10, "Unknown");
 
         solutions = Arrays.stream(solutions).filter(foundedSolution ->
                         foundedSolution != null &&
@@ -174,7 +186,7 @@ public class TNTRunYTest {
     public void generateDataset() throws IOException, ExecutionException {
         RawJump[] jumps = readTestFiles();
 
-        FoundedSolution[] solutions = GUESSER.solveBestOrFirstVertical(jumps, 2, "Unknown");
+        FoundedSolution[] solutions = GUESSER.solveBestOrFirstVertical(jumps, 10, "Unknown");
 
         solutions = TNTRunVerticalGuesser.filterDuplicatesPosition(solutions);
 
@@ -185,7 +197,7 @@ public class TNTRunYTest {
         List<FoundedSolution> list = grouped.entrySet().stream()
                 .flatMap(v -> v.getValue().stream()
                         .filter(Objects::nonNull)
-                        .limit(100))
+                        .limit(v.getKey().equals("Unknown") ? Integer.MAX_VALUE : 100))
                 .toList();
 
 

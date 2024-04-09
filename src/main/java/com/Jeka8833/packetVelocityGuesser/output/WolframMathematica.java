@@ -57,6 +57,35 @@ public class WolframMathematica {
     }
 
     @NotNull
+    @Contract(value = "_, _, _, _,_ -> new", pure = true)
+    public static <Value> String toTable(@NotNull Collection<@Nullable Value> values,
+                                         @NotNull Function<@Nullable Value, @Nullable Object> x,
+                                         @NotNull Function<@Nullable Value, @Nullable Object> y,
+                                         @NotNull Function<@Nullable Value, @Nullable Object> z,
+                                         @Nullable Consumer<@NotNull Exception> exceptionConsumer) {
+        Collection<Object[]> entries = new ArrayList<>();
+        for (Value value : values) {
+            try {
+                Object xValue = x.apply(value);
+                if (xValue == null) throw new NullPointerException("xValue is null");
+
+                Object yValue = y.apply(value);
+                if (yValue == null) throw new NullPointerException("yValue is null");
+
+                Object zValue = z.apply(value);
+                if (zValue == null) throw new NullPointerException("yValue is null");
+
+                entries.add(new Object[]{xValue, yValue, zValue});
+            } catch (Exception e) {
+                if (exceptionConsumer != null)
+                    exceptionConsumer.accept(e);
+            }
+        }
+
+        return toTable(entries.toArray(Object[][]::new));
+    }
+
+    @NotNull
     @Contract(value = "_, _, _, _ -> new", pure = true)
     public static <Value> String toTable(@Nullable Value @NotNull [] values,
                                          @NotNull Function<@Nullable Value, @Nullable Object> x,
@@ -88,7 +117,7 @@ public class WolframMathematica {
 
     @NotNull
     @Contract(value = "_ -> new", pure = true)
-    public static String toTable(@NotNull Object @NotNull [][] entries) {
+    public static String toTable(@NotNull Object @NotNull []... entries) {
         var stringJoiner = new StringJoiner(",", "{", "}");
         for (Object[] objects : entries) {
             stringJoiner.add(formatEntry(objects));
@@ -99,7 +128,7 @@ public class WolframMathematica {
 
     @NotNull
     @Contract(value = "_ -> new", pure = true)
-    public static String formatEntry(@NotNull Object @NotNull [] items) {
+    public static String formatEntry(@NotNull Object... items) {
         var stringJoiner = new StringJoiner(",", "{", "}");
         for (Object item : items) {
             stringJoiner.add(maxPrecision(item));
