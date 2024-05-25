@@ -39,8 +39,13 @@ public interface ResultDeviation {
 
     @Nullable
     default FoundedSolution findBestApproximation(@NotNull RawJump rawJump) {
+        return findBestApproximation(rawJump, Double.MAX_VALUE);
+    }
+
+    @Nullable
+    default FoundedSolution findBestApproximation(@NotNull RawJump rawJump, double maxError) {
         MinErrorValue minError = getMinError(rawJump.positions(), rawJump.jumps());
-        if (minError == null) return null;
+        if (minError == null || minError.error() >= maxError) return null;
 
         Pair<CallJump, Double> callJump = rawJump.getCall(minError.playerCamera());
         if (callJump == null) {
@@ -58,25 +63,28 @@ public interface ResultDeviation {
 
         CallJump callJump = rawJump.calls()[0];
         long callTime = callJump.time().orElseThrow();
-        for (int i = rawJump.positions().length - 1; i >= 0; i--) {
-            PlayerCamera playerCamera = rawJump.positions()[i];
 
-            if (playerCamera.time().orElseThrow() - callTime < 0) {
-                MinErrorValue minError = getMinError(new PlayerCamera[]{playerCamera}, rawJump.jumps());
-
-                if (minError == null) {
-                    ReceivedJump jump = rawJump.jumps()[rawJump.jumps().length - 1];
-
-                    return new FoundedSolution(null, callJump,
-                            jump, playerCamera, Double.MAX_VALUE);
-                } else {
-                    return new FoundedSolution(minError.name(), callJump,
-                            minError.jump(), playerCamera, minError.error());
-                }
+        long errorTime = Long.MAX_VALUE;
+        PlayerCamera firstPosition = null;
+        for (PlayerCamera playerCamera : rawJump.positions()) {
+            long time = callTime - playerCamera.time().orElseThrow();
+            if (time >= 0 && time < errorTime) {
+                errorTime = time;
+                firstPosition = playerCamera;
+                break;
             }
         }
 
-        return null;
+        if (firstPosition == null) return null;
+        MinErrorValue minError = getMinError(new PlayerCamera[]{firstPosition}, rawJump.jumps());
+
+        if (minError == null) {
+            ReceivedJump jump = rawJump.jumps()[rawJump.jumps().length - 1];
+
+            return new FoundedSolution(null, callJump, jump, firstPosition, Double.MAX_VALUE);
+        } else {
+            return new FoundedSolution(minError.name(), callJump, minError.jump(), firstPosition, minError.error());
+        }
     }
 
     @Nullable

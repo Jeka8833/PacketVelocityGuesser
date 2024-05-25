@@ -7,8 +7,9 @@ import org.jetbrains.annotations.NotNull;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.OptionalLong;
 
-public record GameInfo(Optional<Long> time, Optional<String> serverBrand, Optional<String> gametype,
+public record GameInfo(OptionalLong time, Optional<String> serverBrand, Optional<String> gametype,
                        Optional<String> map, Optional<String> mode) implements Packet {
 
     public static final String FILTER_TIME = "gameinfo.serverbrand";
@@ -27,7 +28,7 @@ public record GameInfo(Optional<Long> time, Optional<String> serverBrand, Option
 
     @SuppressWarnings("unused")
     public GameInfo(DataInputStream stream) throws IOException {
-        this(Optional.of(stream.readLong()),
+        this(OptionalLong.of(stream.readLong()),
                 Optional.of(stream.readUTF()),
                 Optional.of(stream.readUTF()),
                 Optional.of(stream.readUTF()),

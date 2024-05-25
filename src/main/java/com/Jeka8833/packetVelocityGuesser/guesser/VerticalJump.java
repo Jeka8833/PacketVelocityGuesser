@@ -10,23 +10,29 @@ import java.util.Map;
 
 public interface VerticalJump extends ResultDeviation {
 
-
     @Nullable
     @Override
     default MinErrorValue getMinError(@NotNull PlayerCamera playerCamera, @NotNull ReceivedJump jump) {
-        MinErrorValue minError = null;
+        double preCalcPitchSin = -playerCamera.pitchSin(); // Too expensive to calculate it every time
+        double preCalcY = jump.velY().orElseThrow();
+
+        double minError = Double.MAX_VALUE;
+        String minErrorName = null;
 
         for (Map.Entry<String, InputConstant> entry : getExpectedValues().entrySet()) {
             InputConstant constant = entry.getValue();
 
-            double error = Math.abs(constant.getOffsetTunnel() -
-                    playerCamera.pitchSin() * constant.getMultiplierTunnel() - jump.velY().orElseThrow());
+            double error = Math.abs(Math.fma(preCalcPitchSin, constant.getMultiplierTunnel(),
+                    constant.getOffsetTunnel() - preCalcY));
 
-            if (minError == null || error < minError.error()) {
-                minError = new MinErrorValue(entry.getKey(), error, playerCamera, jump);
+            if (error < minError) {
+                minError = error;
+                minErrorName = entry.getKey();
             }
         }
 
-        return minError;
+        if (minErrorName == null) return null;
+
+        return new MinErrorValue(minErrorName, minError, playerCamera, jump);
     }
 }

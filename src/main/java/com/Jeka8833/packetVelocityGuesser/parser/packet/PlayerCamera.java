@@ -7,9 +7,11 @@ import org.jetbrains.annotations.NotNull;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalLong;
 
-public record PlayerCamera(Optional<Long> time, Optional<Double> x, Optional<Double> y,
-                           Optional<Double> z, Optional<Float> pitch, Optional<Float> yaw,
+public record PlayerCamera(OptionalLong time, OptionalDouble x, OptionalDouble y,
+                           OptionalDouble z, Optional<Float> pitch, Optional<Float> yaw,
                            Optional<Boolean> onGround)
         implements Packet {
 
@@ -34,10 +36,10 @@ public record PlayerCamera(Optional<Long> time, Optional<Double> x, Optional<Dou
 
     @SuppressWarnings("unused")
     public PlayerCamera(DataInputStream stream) throws IOException {
-        this(Optional.of(stream.readLong()),
-                Optional.of(stream.readDouble()),
-                Optional.of(stream.readDouble()),
-                Optional.of(stream.readDouble()),
+        this(OptionalLong.of(stream.readLong()),
+                OptionalDouble.of(stream.readDouble()),
+                OptionalDouble.of(stream.readDouble()),
+                OptionalDouble.of(stream.readDouble()),
                 Optional.of(stream.readFloat()),
                 Optional.of(stream.readFloat()),
                 Optional.of(stream.readBoolean()));

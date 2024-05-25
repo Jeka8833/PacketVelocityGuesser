@@ -11,71 +11,82 @@ public class RawJumpFilter {
 
     @Contract(value = "_ -> new", pure = true)
     public static @NotNull RawJump @NotNull [] filterUncompletedJumps(@Nullable RawJump @NotNull [] database) {
-        return Arrays.stream(database)
-                .filter(Objects::nonNull)
-                .filter(rawJump -> rawJump.calls().length != 0 &&
-                        rawJump.jumps().length != 0 && rawJump.positions().length != 0)
-                .toArray(RawJump[]::new);
-    }
+        int databaseSize = database.length;
 
+        int index = 0;
+        RawJump[] list = new RawJump[databaseSize];
+
+        for (int i = 0; i < databaseSize; i++) {
+            RawJump rawJump = database[i];
+            if (rawJump != null && rawJump.calls().length != 0 &&
+                    rawJump.jumps().length != 0 && rawJump.positions().length != 0) {
+                list[index++] = rawJump;
+            }
+        }
+
+        return Arrays.copyOf(list, index);
+    }
 
     @Contract(value = "_ -> new", pure = true)
     public static @NotNull RawJump @NotNull [] filterDuplicates(@Nullable RawJump @NotNull [] database) {
-        var set = new HashSet<>(Arrays.asList(database));
+        Collection<RawJump> set = new HashSet<>(database.length);
+        for (RawJump rawJump : database) {
+            if (rawJump != null) {
+                set.add(rawJump);
+            }
+        }
 
-        return set.stream().filter(Objects::nonNull).toArray(RawJump[]::new);
+        return set.toArray(new RawJump[0]);
     }
 
     public static @NotNull RawJump @NotNull [] filterZeroRotation(@Nullable RawJump @NotNull [] database) {
-        Collection<RawJump> jumps = new ArrayList<>();
-        for (RawJump rawJump : database) {
-            if (rawJump == null || rawJump.positions().length == 0) continue;
+        return Arrays.stream(database)
+                .parallel()
+                .filter(rawJump -> rawJump != null && rawJump.positions().length > 0)
+                .map(rawJump -> {
+                    Collection<PlayerCamera> positions = new ArrayList<>(rawJump.positions().length);
 
-            Collection<PlayerCamera> positions = new ArrayList<>();
+                    float lastPitch = 0f;
+                    float lastYaw = 0f;
+                    for (PlayerCamera camera : rawJump.positions()) {
+                        float pitch = camera.pitch().orElse(0f);
+                        float yaw = camera.yaw().orElse(0f);
 
-            float lastPitch = 0f;
-            float lastYaw = 0f;
-            for (PlayerCamera camera : rawJump.positions()) {
-                float pitch = camera.pitch().orElse(0f);
-                float yaw = camera.yaw().orElse(0f);
+                        if (pitch != 0f || yaw != 0f) {
+                            lastPitch = pitch;
+                            lastYaw = yaw;
+                        }
 
-                if (pitch != 0f || yaw != 0f) {
-                    lastPitch = pitch;
-                    lastYaw = yaw;
-                }
+                        if (lastPitch != 0f || lastYaw != 0f) {
+                            positions.add(new PlayerCamera(camera.time(), camera.x(), camera.y(), camera.z(),
+                                    Optional.of(lastPitch), Optional.of(lastYaw), camera.onGround()));
+                        }
+                    }
 
-                if (lastPitch != 0f || lastYaw != 0f) {
-                    positions.add(new PlayerCamera(camera.time(), camera.x(), camera.y(), camera.z(),
-                            Optional.of(lastPitch), Optional.of(lastYaw), camera.onGround()));
-                }
-            }
-
-            jumps.add(new RawJump(rawJump.file(), rawJump.calls(), rawJump.jumps(),
-                    positions.toArray(new PlayerCamera[0])));
-        }
-
-        return jumps.toArray(new RawJump[0]);
+                    return new RawJump(rawJump.file(), rawJump.calls(), rawJump.jumps(),
+                            positions.toArray(new PlayerCamera[0]));
+                })
+                .toArray(RawJump[]::new);
     }
 
     public static @NotNull RawJump @NotNull [] filterFutureCamera(@Nullable RawJump @NotNull [] database) {
-        Collection<RawJump> jumps = new ArrayList<>();
-        for (RawJump rawJump : database) {
-            if (rawJump == null || rawJump.calls().length == 0 || rawJump.positions().length == 0) continue;
+        return Arrays.stream(database)
+                .parallel()
+                .filter(rawJump -> rawJump != null && rawJump.positions().length > 0 && rawJump.calls().length > 0)
+                .map(rawJump -> {
+                    long lastCall = rawJump.calls()[0].time().orElseThrow();
 
-            long lastCall = rawJump.calls()[0].time().orElseThrow();
+                    Collection<PlayerCamera> positions = new ArrayList<>(rawJump.positions().length);
 
-            Collection<PlayerCamera> positions = new ArrayList<>();
+                    for (PlayerCamera camera : rawJump.positions()) {
+                        if (camera.time().orElseThrow() > lastCall) continue;
 
-            for (PlayerCamera camera : rawJump.positions()) {
-                if (camera.time().orElseThrow() > lastCall) continue;
+                        positions.add(camera);
+                    }
 
-                positions.add(camera);
-            }
-
-            jumps.add(new RawJump(rawJump.file(), rawJump.calls(), rawJump.jumps(),
-                    positions.toArray(new PlayerCamera[0])));
-        }
-
-        return jumps.toArray(new RawJump[0]);
+                    return new RawJump(rawJump.file(), rawJump.calls(), rawJump.jumps(),
+                            positions.toArray(new PlayerCamera[0]));
+                })
+                .toArray(RawJump[]::new);
     }
 }

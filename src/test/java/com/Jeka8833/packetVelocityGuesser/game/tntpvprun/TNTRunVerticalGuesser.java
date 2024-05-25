@@ -1,32 +1,28 @@
-package com.Jeka8833.packetVelocityGuesser.game.tntrun;
+package com.Jeka8833.packetVelocityGuesser.game.tntpvprun;
 
 import com.Jeka8833.packetVelocityGuesser.guesser.FoundedSolution;
 import com.Jeka8833.packetVelocityGuesser.guesser.VerticalJump;
 import com.Jeka8833.packetVelocityGuesser.guesser.input.InputConstant;
+import com.Jeka8833.packetVelocityGuesser.guesser.input.InputTunnelConstants;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class TNTRunVerticalGuesser implements VerticalJump {
-    private static final Map<String, InputConstant> JUMP_CONSTANT_MAP = getJumpConstantMap();
-
-    private static Map<String, InputConstant> getJumpConstantMap() {
-        var map = new HashMap<String, InputConstant>();
-        for (int i = 1; i < 20; i++) {
-            map.put("Jump " + i, TNTRunCalculation.getYConstant(i));
-        }
-
-        return Map.copyOf(map);
-    }
-
-
     @Override
     public @NotNull Map<@NotNull String, @NotNull InputConstant> getExpectedValues() {
-        return JUMP_CONSTANT_MAP;
+        // XZ OnGround: 3744
+        // XZ InAir: 3744
+
+        // Y Max: 10296
+        // Y Min: 2808
+        // Y Multiplier: (10296 - 2808) / 2 = 3744
+        // Y Offset: 2808 + 3744 = 6552
+
+        return Map.of("Main", new InputTunnelConstants(6552, 3744));
     }
 
     public static FoundedSolution[] filterDuplicatesPositionAndResults(FoundedSolution[] solutions) {
@@ -41,16 +37,6 @@ public class TNTRunVerticalGuesser implements VerticalJump {
         return filters.stream().map(Filter::master).toArray(FoundedSolution[]::new);
     }
 
-    public static FoundedSolution[] filterDuplicatesPosition(FoundedSolution[] solutions) {
-        HashSet<Filter<FoundedSolution>> filters = Arrays.stream(solutions)
-                .filter(foundedSolution -> foundedSolution != null && foundedSolution.position() != null)
-                .map(foundedSolution ->
-                        new Filter<>(foundedSolution, foundedSolution.position().pitch().orElseThrow().doubleValue(),
-                                foundedSolution.jumpName()))
-                .collect(Collectors.toCollection(HashSet::new));
-
-        return filters.stream().map(Filter::master).toArray(FoundedSolution[]::new);
-    }
 
     private record Filter<Master>(Master master, Object... objects) {
         @Override

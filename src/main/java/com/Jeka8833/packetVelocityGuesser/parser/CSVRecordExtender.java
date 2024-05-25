@@ -6,31 +6,34 @@ import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 public record CSVRecordExtender(@NotNull CSVRecord record) {
 
     @NotNull
     @Contract(value = "_ -> new", pure = true)
-    public Optional<Long> getLong(@NotNull String name) {
+    public OptionalLong getLong(@NotNull String name) {
         Optional<String> value = tryGet(name);
-        if (value.isEmpty()) return Optional.empty();
+        if (value.isEmpty()) return OptionalLong.empty();
 
         try {
-            return Optional.of(Long.parseLong(value.get()));
+            return OptionalLong.of(Long.parseLong(value.get()));
         } catch (NumberFormatException e) {
-            return Optional.empty();
+            return OptionalLong.empty();
         }
     }
     @NotNull
     @Contract(value = "_ -> new", pure = true)
-    public Optional<Integer> getInteger(@NotNull String name) {
+    public OptionalInt getInteger(@NotNull String name) {
         Optional<String> value = tryGet(name);
-        if (value.isEmpty()) return Optional.empty();
+        if (value.isEmpty()) return OptionalInt.empty();
 
         try {
-            return Optional.of(Integer.parseInt(value.get()));
+            return OptionalInt.of(Integer.parseInt(value.get()));
         } catch (NumberFormatException e) {
-            return Optional.empty();
+            return OptionalInt.empty();
         }
     }
 
@@ -57,14 +60,14 @@ public record CSVRecordExtender(@NotNull CSVRecord record) {
 
     @NotNull
     @Contract(value = "_ -> new", pure = true)
-    public Optional<Double> getDouble(@NotNull String name) {
+    public OptionalDouble getDouble(@NotNull String name) {
         Optional<String> value = tryGet(name);
-        if (value.isEmpty()) return Optional.empty();
+        if (value.isEmpty()) return OptionalDouble.empty();
 
         try {
-            return Optional.of(new BigDecimal(value.get()).doubleValue());
+            return OptionalDouble.of(new BigDecimal(value.get()).doubleValue());
         } catch (NumberFormatException e) {
-            return Optional.empty();
+            return OptionalDouble.empty();
         }
     }
 

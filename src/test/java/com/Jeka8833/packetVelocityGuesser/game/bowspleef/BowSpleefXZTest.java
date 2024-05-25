@@ -17,14 +17,11 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class BowSpleefYTest {
+public class BowSpleefXZTest {
     private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
     private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
     private static final Guesser GUESSER = new Guesser(null, new BowSpleefVerticalGuesser());
@@ -34,7 +31,7 @@ public class BowSpleefYTest {
             .add(GameInfoFilter.create()
                     .mode()
                     .blockIfAbsent()
-                    .require(ServerConstants.Hypixel.Mode.BowSpleef)
+                    .require(ServerConstants.Hypixel.Mode.BowSpleef, ServerConstants.Hypixel.Mode.BowSpleefDuel)
                     .build()
 
                     .serverBrand()
@@ -61,24 +58,31 @@ public class BowSpleefYTest {
         return jumps;
     }
 
-    @Test
-    public void firstJump() throws IOException, ExecutionException {
-        RawJump[] jumps = readTestFiles();
+    private static String printXZTable(Collection<FoundedSolution> foundedSolutions) {
+        String table1 = WolframMathematica.toTable(foundedSolutions,
+                v -> v.position().yaw().orElseThrow(),
+                v -> {
+                    double val = v.receiver().velZ().orElseThrow() / v.position().pitchCos();
+                    if (Double.isFinite(val) && Math.abs(val) < 10_000) return val;
 
-        FoundedSolution[] solutions = GUESSER.solveFirstVertical(jumps);
+                    throw new RuntimeException("Not finite value");
+                }, e -> {
+                });
+        String table2 = WolframMathematica.toTable(foundedSolutions,
+                v -> v.position().yaw().orElseThrow() + 90,
+                v -> {
+                    double val = v.receiver().velX().orElseThrow() / v.position().pitchCos();
+                    if (Double.isFinite(val) && Math.abs(val) < 10_000) return val;
 
-        solutions = TNTRunVerticalGuesser.filterDuplicatesPositionAndResults(solutions);
+                    throw new RuntimeException("Not finite value");
+                }, e -> {
+                });
 
-        String table = WolframMathematica.toTable(solutions,
-                v -> v.position().pitch().orElseThrow(),
-                v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
-
-        System.out.println("Table(" + solutions.length + "): " + table);
+        return table1.substring(0, table1.length() - 1) + "," + table2.substring(1);
     }
 
-
     @Test
-    public void splitAndPrintJumps() throws IOException, ExecutionException {
+    public void allJumpFit() throws IOException, ExecutionException {
         RawJump[] jumps = readTestFiles();
 
         FoundedSolution[] solutions = GUESSER.solveBestOrFirstVertical(jumps, 1, "Unknown");
@@ -90,11 +94,9 @@ public class BowSpleefYTest {
                 .collect(Collectors.groupingBy(FoundedSolution::jumpName));
 
         grouped.forEach((s, foundedSolutions) -> {
-            String table = WolframMathematica.toTable(foundedSolutions,
-                    v -> v.position().pitch().orElseThrow(),
-                    v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
+            String table = printXZTable(foundedSolutions);
 
-            System.out.println("Table for " + s + "(" + foundedSolutions.size() + "): " + table);
+            System.out.println("Table for " + s + "(" + foundedSolutions.size() / 2 + "): " + table);
         });
     }
 }

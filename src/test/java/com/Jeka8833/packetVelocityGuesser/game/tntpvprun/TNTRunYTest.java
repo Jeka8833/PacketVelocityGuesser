@@ -1,10 +1,9 @@
-package com.Jeka8833.packetVelocityGuesser.game.bowspleef;
+package com.Jeka8833.packetVelocityGuesser.game.tntpvprun;
 
 import com.Jeka8833.packetVelocityGuesser.ServerConstants;
 import com.Jeka8833.packetVelocityGuesser.composer.Composer;
 import com.Jeka8833.packetVelocityGuesser.composer.RawJump;
 import com.Jeka8833.packetVelocityGuesser.composer.RawJumpFilter;
-import com.Jeka8833.packetVelocityGuesser.game.tntpvprun.TNTRunVerticalGuesser;
 import com.Jeka8833.packetVelocityGuesser.guesser.FoundedSolution;
 import com.Jeka8833.packetVelocityGuesser.guesser.Guesser;
 import com.Jeka8833.packetVelocityGuesser.output.WolframMathematica;
@@ -24,17 +23,18 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class BowSpleefYTest {
+public class TNTRunYTest {
+
     private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
     private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
-    private static final Guesser GUESSER = new Guesser(null, new BowSpleefVerticalGuesser());
+    private static final Guesser GUESSER = new Guesser(null, new TNTRunVerticalGuesser());
 
 
     private static final FileFilter PACKET_FILTER = FileFilter.create()
             .add(GameInfoFilter.create()
                     .mode()
                     .blockIfAbsent()
-                    .require(ServerConstants.Hypixel.Mode.BowSpleef)
+                    .require(ServerConstants.Hypixel.Mode.TNTRun, ServerConstants.Hypixel.Mode.PVPRun)
                     .build()
 
                     .serverBrand()

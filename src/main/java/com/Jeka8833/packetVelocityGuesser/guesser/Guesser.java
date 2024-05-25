@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.function.Function;
 
 public record Guesser(@Nullable HorizontalJump horizontalGuesser, @Nullable VerticalJump verticalGuesser) {
@@ -26,6 +27,27 @@ public record Guesser(@Nullable HorizontalJump horizontalGuesser, @Nullable Vert
                     verticalGuesser.findBestApproximation(rawJump) : null;
             FoundedSolution horizontal = horizontalGuesser != null ?
                     horizontalGuesser.findBestApproximation(rawJump) : null;
+
+            if (vertical != null && horizontal != null) {
+                solutions[i] = (vertical.error() < horizontal.error()) ? vertical : horizontal;
+            } else {
+                solutions[i] = (vertical != null) ? vertical : horizontal;
+            }
+        }
+        return solutions;
+    }
+
+    @Nullable
+    @Contract("_, _ -> new")
+    public FoundedSolution @NotNull [] solveBest(@NotNull RawJump @NotNull [] data, double maxError) {
+        var solutions = new FoundedSolution[data.length];
+        for (int i = 0; i < data.length; i++) {
+            RawJump rawJump = data[i];
+
+            FoundedSolution vertical = verticalGuesser != null ?
+                    verticalGuesser.findBestApproximation(rawJump, maxError) : null;
+            FoundedSolution horizontal = horizontalGuesser != null ?
+                    horizontalGuesser.findBestApproximation(rawJump, maxError) : null;
 
             if (vertical != null && horizontal != null) {
                 solutions[i] = (vertical.error() < horizontal.error()) ? vertical : horizontal;
@@ -96,6 +118,22 @@ public record Guesser(@Nullable HorizontalJump horizontalGuesser, @Nullable Vert
     }
 
     @Nullable
+    @Contract("_, _ -> new")
+    public FoundedSolution @NotNull [] solveBestVertical(@NotNull RawJump @NotNull [] data, double maxError) {
+        if (verticalGuesser == null) throw new IllegalArgumentException("Vertical guesser is null");
+
+        return find(data, rawJump -> verticalGuesser.findBestApproximation(rawJump, maxError));
+    }
+
+    @Nullable
+    @Contract("_, _ -> new")
+    public FoundedSolution @NotNull [] solveBestHorizontal(@NotNull RawJump @NotNull [] data, double maxError) {
+        if (horizontalGuesser == null) throw new IllegalArgumentException("Horizontal guesser is null");
+
+        return find(data, rawJump -> horizontalGuesser.findBestApproximation(rawJump, maxError));
+    }
+
+    @Nullable
     @Contract("_ -> new")
     public FoundedSolution @NotNull [] solveFirstVertical(@NotNull RawJump @NotNull [] data) {
         if (verticalGuesser == null) throw new IllegalArgumentException("Vertical guesser is null");
@@ -130,11 +168,9 @@ public record Guesser(@Nullable HorizontalJump horizontalGuesser, @Nullable Vert
     }
 
     private static FoundedSolution[] find(RawJump[] data, Function<RawJump, FoundedSolution> function) {
-        var solutions = new FoundedSolution[data.length];
-        for (int i = 0; i < solutions.length; i++) {
-            solutions[i] = function.apply(data[i]);
-        }
-
-        return solutions;
+        return Arrays.stream(data)
+                .parallel()
+                .map(function)
+                .toArray(FoundedSolution[]::new);
     }
 }

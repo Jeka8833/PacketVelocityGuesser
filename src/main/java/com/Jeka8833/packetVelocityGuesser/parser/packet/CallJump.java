@@ -7,8 +7,9 @@ import org.jetbrains.annotations.NotNull;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.OptionalLong;
 
-public record CallJump(Optional<Long> time, Optional<Boolean> useFeather) implements Packet {
+public record CallJump(OptionalLong time, Optional<Boolean> useFeather) implements Packet {
     public static final String FILTER_TIME = "call.jump.time";
     public static final String FILTER_FEATHER = "call.jump.usefeather";
 
@@ -20,7 +21,7 @@ public record CallJump(Optional<Long> time, Optional<Boolean> useFeather) implem
 
     @SuppressWarnings("unused")
     public CallJump(DataInputStream stream) throws IOException {
-        this(Optional.of(stream.readLong()),
+        this(OptionalLong.of(stream.readLong()),
                 Optional.of(stream.readBoolean()));
     }
 

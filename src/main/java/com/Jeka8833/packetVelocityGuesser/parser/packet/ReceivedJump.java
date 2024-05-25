@@ -6,10 +6,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
-public record ReceivedJump(Optional<Long> time, Optional<Integer> velX, Optional<Integer> velY,
-                           Optional<Integer> velZ) implements Packet {
+public record ReceivedJump(OptionalLong time, OptionalInt velX, OptionalInt velY,
+                           OptionalInt velZ) implements Packet {
     public static final double SCALE = 8000D;
 
     public static final String FILTER_TIME = "received.jump.time";
@@ -27,10 +28,10 @@ public record ReceivedJump(Optional<Long> time, Optional<Integer> velX, Optional
 
     @SuppressWarnings("unused")
     public ReceivedJump(DataInputStream stream) throws IOException {
-        this(Optional.of(stream.readLong()),
-                Optional.of(stream.readInt()),
-                Optional.of(stream.readInt()),
-                Optional.of(stream.readInt()));
+        this(OptionalLong.of(stream.readLong()),
+                OptionalInt.of(stream.readInt()),
+                OptionalInt.of(stream.readInt()),
+                OptionalInt.of(stream.readInt()));
     }
 
     public double engineVelX() {

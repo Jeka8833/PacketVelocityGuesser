@@ -11,6 +11,7 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,14 +31,23 @@ public class ServerStorageFileParser {
     );
 
     private static final Logger LOGGER = LogManager.getLogger(CsvFileParser.class);
-    private final Map<Integer, Class<? extends Packet>> packetIndexes;
+    private final Map<Integer, Constructor<? extends Packet>> packetIndexes;
 
     public ServerStorageFileParser() {
         this(DEFAULT_TNTCLIENT_PACKET_LIST);
     }
 
     public ServerStorageFileParser(Map<Integer, Class<? extends Packet>> packetIndexes) {
-        this.packetIndexes = packetIndexes;
+        try {
+            Map<Integer, Constructor<? extends Packet>> constructors = new HashMap<>();
+            for (Map.Entry<Integer, Class<? extends Packet>> entry : packetIndexes.entrySet()) {
+                constructors.put(entry.getKey(), entry.getValue().getDeclaredConstructor(DataInputStream.class));
+            }
+
+            this.packetIndexes = constructors;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error while creating ServerStorageFileParser", e);
+        }
     }
 
 
@@ -86,9 +96,6 @@ public class ServerStorageFileParser {
     @Blocking
     @Contract(value = "_ -> new", pure = true)
     public FilePackets readFile(@NotNull Path file) throws IOException, NoSuchMethodException {
-        if (!Files.isRegularFile(file)) throw new IOException("File is not regular file: " + file);
-        if (!Files.isReadable(file)) throw new IOException("File is not readable: " + file);
-
         Collection<Packet> packets = new ArrayList<>();
 
         try (InputStream inputStream = Files.newInputStream(file);
@@ -96,24 +103,21 @@ public class ServerStorageFileParser {
 
             if (!hasHeader(dataStream)) throw new IOException("File has no header: " + file);
 
-            long timeCreateFile = dataStream.readLong();
+            dataStream.skipNBytes(8); // skip timeCreateFile
 
             int packetID;
             while ((packetID = dataStream.read()) != -1) {
-                Class<? extends Packet> aClass = packetIndexes.get(packetID);
+                Constructor<? extends Packet> aClass = packetIndexes.get(packetID);
                 if (aClass == null) continue;
 
-                Packet packet = aClass.getDeclaredConstructor(DataInputStream.class)
-                        .newInstance(dataStream);
+                Packet packet = aClass.newInstance(dataStream);
                 packets.add(packet);
             }
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | OutOfMemoryError e) {
-            if (e instanceof OutOfMemoryError) {
-                System.err.println("FATAL::Out of memory");
+        } catch (OutOfMemoryError e) {
+            LOGGER.fatal("Out of memory");
 
-                System.exit(0);
-            }
-
+            System.exit(0);
+        } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
             throw new NoSuchMethodException(e.getMessage());
         }
 
@@ -121,8 +125,6 @@ public class ServerStorageFileParser {
     }
 
     private static boolean hasHeader(DataInputStream inputStream) throws IOException {
-        byte[] header = new byte[HEADER_SIGNATURE.length];
-        inputStream.readFully(header);
-        return Arrays.equals(header, HEADER_SIGNATURE);
+        return Arrays.equals(inputStream.readNBytes(HEADER_SIGNATURE.length), HEADER_SIGNATURE);
     }
 }
