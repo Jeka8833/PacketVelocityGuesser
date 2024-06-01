@@ -12,14 +12,14 @@ import com.Jeka8833.packetVelocityGuesser.parser.FilePackets;
 import com.Jeka8833.packetVelocityGuesser.parser.ServerStorageFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.FileFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.GameInfoFilter;
+import com.Jeka8833.packetVelocityGuesser.parser.packet.CallJump;
+import com.Jeka8833.packetVelocityGuesser.parser.packet.Packet;
+import com.Jeka8833.packetVelocityGuesser.parser.packet.ReceivedJump;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -27,6 +27,10 @@ public class TNTRunYTest {
 
     private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
     private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
+
+/*    private static final Path PATH = Path.of("C:\\Users\\Jeka8833\\AppData\\Roaming\\.minecraft\\TNTClients-records\\PacketRecorder\\01.06.2024 11.58.csv");
+    private static final CsvFileParser SERVER_PARSER = new CsvFileParser();*/
+
     private static final Guesser GUESSER = new Guesser(null, new TNTRunVerticalGuesser());
 
 
@@ -34,7 +38,7 @@ public class TNTRunYTest {
             .add(GameInfoFilter.create()
                     .mode()
                     .blockIfAbsent()
-                    .require(ServerConstants.Hypixel.Mode.TNTRun, ServerConstants.Hypixel.Mode.PVPRun)
+                    .require(ServerConstants.Hypixel.Mode.TNTRun/*, ServerConstants.Hypixel.Mode.PVPRun*/)
                     .build()
 
                     .serverBrand()
@@ -47,7 +51,7 @@ public class TNTRunYTest {
 
     private static RawJump[] readTestFiles() throws IOException, ExecutionException {
         Path[] files = CsvFileParser.getAllFilesInFolder(PATH);
-        FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, true);
+        FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, false);
 
         packets = PACKET_FILTER.filter(packets);
 
@@ -87,6 +91,7 @@ public class TNTRunYTest {
 
         Map<String, List<FoundedSolution>> grouped = Arrays.stream(solutions)
                 .filter(Objects::nonNull)
+                //.filter(v -> v.position().onGround().orElseThrow())
                 .collect(Collectors.groupingBy(FoundedSolution::jumpName));
 
         grouped.forEach((s, foundedSolutions) -> {
@@ -96,5 +101,27 @@ public class TNTRunYTest {
 
             System.out.println("Table for " + s + "(" + foundedSolutions.size() + "): " + table);
         });
+    }
+
+    @Test
+    public void printYPingMove() throws IOException, ExecutionException {
+        RawJump[] jumps = readTestFiles();
+
+        List<Double> yMove = new ArrayList<>();
+        for (RawJump jump : jumps) {
+            if (jump.calls().length == 0 || jump.jumps().length == 0)
+                continue;
+
+            CallJump firstCall = jump.calls()[0];
+            if (firstCall.posY().isEmpty()) continue;
+
+            ReceivedJump firstReceived = jump.jumps()[0];
+            if (firstReceived.posY().isEmpty()) continue;
+
+            yMove.add(firstReceived.posY().orElseThrow() - firstCall.posY().orElseThrow());
+        }
+
+        String table = WolframMathematica.formatEntry(yMove.toArray());
+        System.out.println("Table(" + yMove.size() + "): " + table);
     }
 }

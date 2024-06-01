@@ -7,10 +7,7 @@ import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
@@ -25,12 +22,14 @@ public class ServerStorageFileParser {
 
     public static final Map<Integer, Class<? extends Packet>> DEFAULT_TNTCLIENT_PACKET_LIST = Map.ofEntries(
             Map.entry(0, CallJump.class),
+            Map.entry(4, CallJump.class),
             Map.entry(1, GameInfo.class),
             Map.entry(2, PlayerCamera.class),
-            Map.entry(3, ReceivedJump.class)
+            Map.entry(3, ReceivedJump.class),
+            Map.entry(5, ReceivedJump.class)
     );
 
-    private static final Logger LOGGER = LogManager.getLogger(CsvFileParser.class);
+    private static final Logger LOGGER = LogManager.getLogger(ServerStorageFileParser.class);
     private final Map<Integer, Constructor<? extends Packet>> packetIndexes;
 
     public ServerStorageFileParser() {
@@ -41,7 +40,8 @@ public class ServerStorageFileParser {
         try {
             Map<Integer, Constructor<? extends Packet>> constructors = new HashMap<>();
             for (Map.Entry<Integer, Class<? extends Packet>> entry : packetIndexes.entrySet()) {
-                constructors.put(entry.getKey(), entry.getValue().getDeclaredConstructor(DataInputStream.class));
+                constructors.put(entry.getKey(),
+                        entry.getValue().getDeclaredConstructor(DataInputStream.class, int.class));
             }
 
             this.packetIndexes = constructors;
@@ -69,14 +69,14 @@ public class ServerStorageFileParser {
     public FilePackets[] parseAllFiles(@NotNull Path @NotNull [] files, boolean skipErrors,
                                        @NotNull ExecutorService executorService)
             throws InterruptedException, ExecutionException {
-        Collection<Callable<FilePackets>> tasks = new ArrayList<>();
+        Collection<Callable<FilePackets>> tasks = new ArrayList<>(files.length);
         for (Path file : files) {
             tasks.add(() -> readFile(file));
         }
 
         Collection<Future<FilePackets>> futures = executorService.invokeAll(tasks);
 
-        Collection<FilePackets> database = new ArrayList<>();
+        Collection<FilePackets> database = new ArrayList<>(futures.size());
         for (Future<FilePackets> future : futures) {
             try {
                 database.add(future.get());
@@ -110,13 +110,15 @@ public class ServerStorageFileParser {
                 Constructor<? extends Packet> aClass = packetIndexes.get(packetID);
                 if (aClass == null) continue;
 
-                Packet packet = aClass.newInstance(dataStream);
+                Packet packet = aClass.newInstance(dataStream, packetID);
                 packets.add(packet);
             }
         } catch (OutOfMemoryError e) {
             LOGGER.fatal("Out of memory");
 
             System.exit(0);
+        } catch (EOFException e) {
+            LOGGER.warn("Unexpected end of file", e);
         } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
             throw new NoSuchMethodException(e.getMessage());
         }

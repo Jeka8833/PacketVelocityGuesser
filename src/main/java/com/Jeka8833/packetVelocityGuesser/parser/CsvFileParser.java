@@ -33,7 +33,7 @@ public class CsvFileParser {
             Map.entry("Call jump feather", CallJump.class),
             Map.entry("Call jump space", CallJump.class),
             Map.entry("Game Info", GameInfo.class),
-            Map.entry("History", PlayerCamera.class),
+            Map.entry("Movement", PlayerCamera.class),
             Map.entry("Player Info", PlayerInfo.class),
             Map.entry("Jump", ReceivedJump.class)
     );

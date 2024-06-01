@@ -1,9 +1,10 @@
-package com.Jeka8833.packetVelocityGuesser.game.tntpvprun;
+package com.Jeka8833.packetVelocityGuesser.game.wizards;
 
 import com.Jeka8833.packetVelocityGuesser.ServerConstants;
 import com.Jeka8833.packetVelocityGuesser.composer.Composer;
 import com.Jeka8833.packetVelocityGuesser.composer.RawJump;
 import com.Jeka8833.packetVelocityGuesser.composer.RawJumpFilter;
+import com.Jeka8833.packetVelocityGuesser.game.tntpvprun.TNTRunVerticalGuesser;
 import com.Jeka8833.packetVelocityGuesser.guesser.FoundedSolution;
 import com.Jeka8833.packetVelocityGuesser.guesser.Guesser;
 import com.Jeka8833.packetVelocityGuesser.output.WolframMathematica;
@@ -15,28 +16,26 @@ import com.Jeka8833.packetVelocityGuesser.parser.filter.GameInfoFilter;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class TNTRunXZTest {
-    //private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
-    //private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
+public class WizardsYTest {
 
-    private static final Path PATH = Path.of("C:\\Users\\Jeka8833\\AppData\\Roaming\\.minecraft\\TNTClients-records\\PacketRecorder\\31.05.2024 21.31.csv");
-    private static final CsvFileParser SERVER_PARSER = new CsvFileParser();
-
-    private static final Guesser GUESSER = new Guesser(null, new TNTRunVerticalGuesser());
+    private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
+    private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
+    private static final Guesser GUESSER = new Guesser(null, new WizardsVerticalGuesser());
 
 
     private static final FileFilter PACKET_FILTER = FileFilter.create()
             .add(GameInfoFilter.create()
                     .mode()
                     .blockIfAbsent()
-                    .require(ServerConstants.Hypixel.Mode.TNTRun, ServerConstants.Hypixel.Mode.PVPRun)
+                    .require(ServerConstants.Hypixel.Mode.WIZARDS)
                     .build()
 
                     .serverBrand()
@@ -51,7 +50,7 @@ public class TNTRunXZTest {
         Path[] files = CsvFileParser.getAllFilesInFolder(PATH);
         FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, true);
 
-        //packets = PACKET_FILTER.filter(packets);
+        packets = PACKET_FILTER.filter(packets);
 
         RawJump[] jumps = Composer.toRawJump(packets);
 
@@ -63,31 +62,24 @@ public class TNTRunXZTest {
         return jumps;
     }
 
-    private static String printXZTable(Collection<FoundedSolution> foundedSolutions) {
-        String table1 = WolframMathematica.toTable(foundedSolutions,
-                v -> v.position().yaw().orElseThrow(),
-                v -> {
-                    double val = v.receiver().velZ().orElseThrow() / v.position().pitchCos();
-                    if (Double.isFinite(val) && Math.abs(val) < 10_000) return val;
+    @Test
+    public void firstJump() throws IOException, ExecutionException {
+        RawJump[] jumps = readTestFiles();
 
-                    throw new RuntimeException("Not finite value");
-                }, e -> {
-                });
-        String table2 = WolframMathematica.toTable(foundedSolutions,
-                v -> v.position().yaw().orElseThrow() + 90,
-                v -> {
-                    double val = v.receiver().velX().orElseThrow() / v.position().pitchCos();
-                    if (Double.isFinite(val) && Math.abs(val) < 10_000) return val;
+        FoundedSolution[] solutions = GUESSER.solveFirstVertical(jumps);
 
-                    throw new RuntimeException("Not finite value");
-                }, e -> {
-                });
+        solutions = TNTRunVerticalGuesser.filterDuplicatesPositionAndResults(solutions);
 
-        return table1.substring(0, table1.length() - 1) + "," + table2.substring(1);
+        String table = WolframMathematica.toTable(solutions,
+                v -> v.position().pitch().orElseThrow(),
+                v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
+
+        System.out.println("Table(" + solutions.length + "): " + table);
     }
 
+
     @Test
-    public void allJumpFit() throws IOException, ExecutionException {
+    public void splitAndPrintJumps() throws IOException, ExecutionException {
         RawJump[] jumps = readTestFiles();
 
         FoundedSolution[] solutions = GUESSER.solveBestOrFirstVertical(jumps, 1, "Unknown");
@@ -96,16 +88,15 @@ public class TNTRunXZTest {
 
         Map<String, List<FoundedSolution>> grouped = Arrays.stream(solutions)
                 .filter(Objects::nonNull)
+                //.filter(v -> v.position().onGround().orElseThrow())
                 .collect(Collectors.groupingBy(FoundedSolution::jumpName));
 
-        StringBuffer stringBuffer = new StringBuffer();
-
         grouped.forEach((s, foundedSolutions) -> {
-            String table = printXZTable(foundedSolutions);
+            String table = WolframMathematica.toTable(foundedSolutions,
+                    v -> v.position().pitch().orElseThrow(),
+                    v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
 
-            stringBuffer.append("Table for ").append(s).append("(").append(foundedSolutions.size() / 2).append("): ").append(table).append('\n');
+            System.out.println("Table for " + s + "(" + foundedSolutions.size() + "): " + table);
         });
-
-        Files.writeString(Paths.get("test.txt"), stringBuffer.toString());
     }
 }

@@ -27,7 +27,7 @@ public record GameInfo(OptionalLong time, Optional<String> serverBrand, Optional
     }
 
     @SuppressWarnings("unused")
-    public GameInfo(DataInputStream stream) throws IOException {
+    public GameInfo(DataInputStream stream, int packetID) throws IOException {
         this(OptionalLong.of(stream.readLong()),
                 Optional.of(stream.readUTF()),
                 Optional.of(stream.readUTF()),

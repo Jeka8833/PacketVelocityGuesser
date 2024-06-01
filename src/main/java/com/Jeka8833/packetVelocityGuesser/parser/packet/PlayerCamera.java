@@ -35,7 +35,7 @@ public record PlayerCamera(OptionalLong time, OptionalDouble x, OptionalDouble y
     }
 
     @SuppressWarnings("unused")
-    public PlayerCamera(DataInputStream stream) throws IOException {
+    public PlayerCamera(DataInputStream stream, int packetID) throws IOException {
         this(OptionalLong.of(stream.readLong()),
                 OptionalDouble.of(stream.readDouble()),
                 OptionalDouble.of(stream.readDouble()),
