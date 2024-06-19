@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 public class WizardsYTest {
 
-    private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
+    private static final Path PATH = Path.of("D:\\User\\Download\\jumpBackup\\analytic\\jumpInfoV4\\");
     private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
     private static final Guesser GUESSER = new Guesser(null, new WizardsVerticalGuesser());
 
@@ -70,11 +70,13 @@ public class WizardsYTest {
 
         solutions = TNTRunVerticalGuesser.filterDuplicatesPositionAndResults(solutions);
 
-        String table = WolframMathematica.toTable(solutions,
-                v -> v.position().pitch().orElseThrow(),
-                v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
+        var table = new WolframMathematica()
+                .processAndAddArray(v -> new Object[]{
+                        v.position().pitch().orElseThrow(),
+                        v.receiver().velY().orElseThrow()
+                }, solutions);
 
-        System.out.println("Table(" + solutions.length + "): " + table);
+        System.out.println("Table(" + table.getArraySize() + "): " + table);
     }
 
 
@@ -84,7 +86,7 @@ public class WizardsYTest {
 
         FoundedSolution[] solutions = GUESSER.solveBestOrFirstVertical(jumps, 1, "Unknown");
 
-        solutions = TNTRunVerticalGuesser.filterDuplicatesPositionAndResults(solutions);
+        //solutions = TNTRunVerticalGuesser.filterDuplicatesPositionAndResults(solutions);
 
         Map<String, List<FoundedSolution>> grouped = Arrays.stream(solutions)
                 .filter(Objects::nonNull)
@@ -92,11 +94,13 @@ public class WizardsYTest {
                 .collect(Collectors.groupingBy(FoundedSolution::jumpName));
 
         grouped.forEach((s, foundedSolutions) -> {
-            String table = WolframMathematica.toTable(foundedSolutions,
-                    v -> v.position().pitch().orElseThrow(),
-                    v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
+            var table = new WolframMathematica()
+                    .processAndAddArray(v -> new Object[]{
+                            v.position().pitch().orElseThrow(),
+                            v.receiver().velY().orElseThrow()
+                    }, foundedSolutions);
 
-            System.out.println("Table for " + s + "(" + foundedSolutions.size() + "): " + table);
+            System.out.println("Table for " + s + "(" + table.getArraySize() + "): " + table);
         });
     }
 }

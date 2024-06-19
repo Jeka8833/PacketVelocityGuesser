@@ -9,7 +9,6 @@ import com.Jeka8833.packetVelocityGuesser.guesser.Guesser;
 import com.Jeka8833.packetVelocityGuesser.output.WolframMathematica;
 import com.Jeka8833.packetVelocityGuesser.parser.CsvFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.FilePackets;
-import com.Jeka8833.packetVelocityGuesser.parser.ServerStorageFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.FileFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.GameInfoFilter;
 import org.junit.jupiter.api.Test;
@@ -63,27 +62,24 @@ public class TNTRunXZTest {
         return jumps;
     }
 
-    private static String printXZTable(Collection<FoundedSolution> foundedSolutions) {
-        String table1 = WolframMathematica.toTable(foundedSolutions,
-                v -> v.position().yaw().orElseThrow(),
-                v -> {
+    private static WolframMathematica printXZTable(Iterable<FoundedSolution> foundedSolutions) {
+        return new WolframMathematica()
+                .processAndAddArray(v -> {
                     double val = v.receiver().velZ().orElseThrow() / v.position().pitchCos();
-                    if (Double.isFinite(val) && Math.abs(val) < 10_000) return val;
+                    if (Double.isFinite(val) && Math.abs(val) < 10_000) {
+                        return new Object[]{v.position().yaw().orElseThrow(), val};
+                    }
 
                     throw new RuntimeException("Not finite value");
-                }, e -> {
-                });
-        String table2 = WolframMathematica.toTable(foundedSolutions,
-                v -> v.position().yaw().orElseThrow() + 90,
-                v -> {
+                }, null, foundedSolutions)
+                .processAndAddArray(v -> {
                     double val = v.receiver().velX().orElseThrow() / v.position().pitchCos();
-                    if (Double.isFinite(val) && Math.abs(val) < 10_000) return val;
+                    if (Double.isFinite(val) && Math.abs(val) < 10_000) {
+                        return new Object[]{v.position().yaw().orElseThrow() + 90D, val};
+                    }
 
                     throw new RuntimeException("Not finite value");
-                }, e -> {
-                });
-
-        return table1.substring(0, table1.length() - 1) + "," + table2.substring(1);
+                }, null, foundedSolutions);
     }
 
     @Test
@@ -101,9 +97,9 @@ public class TNTRunXZTest {
         StringBuffer stringBuffer = new StringBuffer();
 
         grouped.forEach((s, foundedSolutions) -> {
-            String table = printXZTable(foundedSolutions);
+            var table = printXZTable(foundedSolutions);
 
-            stringBuffer.append("Table for ").append(s).append("(").append(foundedSolutions.size() / 2).append("): ").append(table).append('\n');
+            stringBuffer.append("Table for ").append(s).append("(").append(table.getArraySize()).append("): ").append(table).append('\n');
         });
 
         Files.writeString(Paths.get("test.txt"), stringBuffer.toString());

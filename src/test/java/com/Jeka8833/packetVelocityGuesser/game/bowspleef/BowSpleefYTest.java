@@ -13,19 +13,17 @@ import com.Jeka8833.packetVelocityGuesser.parser.FilePackets;
 import com.Jeka8833.packetVelocityGuesser.parser.ServerStorageFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.FileFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.GameInfoFilter;
+import com.Jeka8833.packetVelocityGuesser.parser.packet.ReceivedJump;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class BowSpleefYTest {
-    private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
+    private static final Path PATH = Path.of("D:\\User\\Download\\jumpBackup\\analytic\\jumpInfoV4\\");
     private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
     private static final Guesser GUESSER = new Guesser(null, new BowSpleefVerticalGuesser());
 
@@ -69,11 +67,13 @@ public class BowSpleefYTest {
 
         solutions = TNTRunVerticalGuesser.filterDuplicatesPositionAndResults(solutions);
 
-        String table = WolframMathematica.toTable(solutions,
-                v -> v.position().pitch().orElseThrow(),
-                v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
+        var wolframMathematica = new WolframMathematica()
+                .processAndAddArray(v -> new Object[]{
+                        v.position().pitch().orElseThrow(),
+                        v.receiver().velY().orElseThrow()
+                }, solutions);
 
-        System.out.println("Table(" + solutions.length + "): " + table);
+        System.out.println("Table(" + wolframMathematica.getArraySize() + "): " + wolframMathematica);
     }
 
 
@@ -90,11 +90,48 @@ public class BowSpleefYTest {
                 .collect(Collectors.groupingBy(FoundedSolution::jumpName));
 
         grouped.forEach((s, foundedSolutions) -> {
-            String table = WolframMathematica.toTable(foundedSolutions,
-                    v -> v.position().pitch().orElseThrow(),
-                    v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
+            var wolframMathematica = new WolframMathematica()
+                    .processAndAddArray(v -> new Object[]{
+                            v.position().pitch().orElseThrow(),
+                            v.receiver().velY().orElseThrow()
+                    }, foundedSolutions);
 
-            System.out.println("Table for " + s + "(" + foundedSolutions.size() + "): " + table);
+            System.out.println("Table for " + s + "(" + wolframMathematica.getArraySize() + "): " + wolframMathematica);
         });
+    }
+
+    @Test
+    public void hitMove() throws IOException, ExecutionException {
+        RawJump[] jumps = readTestFiles();
+
+        Collection<ReceivedJump> receivedJumps = new HashSet<>();
+        for (RawJump jump : jumps) {
+            ReceivedJump[] received = jump.jumps();
+            receivedJumps.addAll(Arrays.asList(received));
+        }
+
+        FoundedSolution[] solutions = GUESSER.solveBestOrFirstVertical(jumps, 1, "Unknown");
+
+        solutions = TNTRunVerticalGuesser.filterDuplicatesPositionAndResults(solutions);
+
+        Map<String, List<FoundedSolution>> grouped = Arrays.stream(solutions)
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(FoundedSolution::jumpName));
+
+        grouped.forEach((s, foundedSolutions) -> {
+            for (FoundedSolution solution : foundedSolutions) {
+                ReceivedJump received = solution.receiver();
+                receivedJumps.remove(received);
+            }
+        });
+
+        var wolframMathematica = new WolframMathematica()
+                .processAndAddArray(v -> new Object[]{
+                        v.velX().orElseThrow(),
+                        v.velY().orElseThrow(),
+                        v.velZ().orElseThrow()
+                }, receivedJumps);
+
+        System.out.println("Table for (" + wolframMathematica.getArraySize() + "): " + wolframMathematica);
     }
 }

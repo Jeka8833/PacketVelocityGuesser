@@ -19,7 +19,7 @@ public class WizardsVerticalGuesser implements VerticalJump {
         // Y Multiplier: (12636 - 3276) / 2 = 4680
         // Y Offset: (12636 + 3276) / 2 = 7956
 
-        return Map.of("Main", new InputTunnelConstants(7956, 4680));
+        return Map.of("Main", new InputTunnelConstants(7956, 4680), "Hypixel Bug", new InputTunnelConstants(3359D, 0D));
     }
 
     public static FoundedSolution[] filterDuplicatesPositionAndResults(FoundedSolution[] solutions) {

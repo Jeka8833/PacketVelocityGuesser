@@ -20,9 +20,11 @@ public class TNTRunVerticalGuesser implements VerticalJump {
         // Y Max: 10296
         // Y Min: 2808
         // Y Multiplier: (10296 - 2808) / 2 = 3744
-        // Y Offset: 2808 + 3744 = 6552
+        // Y Offset: (2808 + 3744) = 6552
 
-        return Map.of("Main", new InputTunnelConstants(6552, 3744));
+        return Map.of(
+                "Main", new InputTunnelConstants(6552D, 3744D),
+                "Hypixel Bug", new InputTunnelConstants(3359D, 0D));
     }
 
     public static FoundedSolution[] filterDuplicatesPositionAndResults(FoundedSolution[] solutions) {

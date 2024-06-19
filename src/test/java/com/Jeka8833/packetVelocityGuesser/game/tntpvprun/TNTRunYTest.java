@@ -13,7 +13,6 @@ import com.Jeka8833.packetVelocityGuesser.parser.ServerStorageFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.FileFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.GameInfoFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.packet.CallJump;
-import com.Jeka8833.packetVelocityGuesser.parser.packet.Packet;
 import com.Jeka8833.packetVelocityGuesser.parser.packet.ReceivedJump;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +24,7 @@ import java.util.stream.Collectors;
 
 public class TNTRunYTest {
 
-    private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
+    private static final Path PATH = Path.of("D:\\User\\Download\\jumpBackup\\analytic\\jumpInfoV4\\");
     private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
 
 /*    private static final Path PATH = Path.of("C:\\Users\\Jeka8833\\AppData\\Roaming\\.minecraft\\TNTClients-records\\PacketRecorder\\01.06.2024 11.58.csv");
@@ -73,11 +72,13 @@ public class TNTRunYTest {
 
         solutions = TNTRunVerticalGuesser.filterDuplicatesPositionAndResults(solutions);
 
-        String table = WolframMathematica.toTable(solutions,
-                v -> v.position().pitch().orElseThrow(),
-                v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
+        var table = new WolframMathematica()
+                .processAndAddArray(v -> new Object[]{
+                        v.position().pitch().orElseThrow(),
+                        v.receiver().velY().orElseThrow()
+                }, solutions);
 
-        System.out.println("Table(" + solutions.length + "): " + table);
+        System.out.println("Table(" + table.getArraySize() + "): " + table);
     }
 
 
@@ -95,11 +96,13 @@ public class TNTRunYTest {
                 .collect(Collectors.groupingBy(FoundedSolution::jumpName));
 
         grouped.forEach((s, foundedSolutions) -> {
-            String table = WolframMathematica.toTable(foundedSolutions,
-                    v -> v.position().pitch().orElseThrow(),
-                    v -> v.receiver().velY().orElseThrow(), Throwable::printStackTrace);
+            var table = new WolframMathematica()
+                    .processAndAddArray(v -> new Object[]{
+                            v.position().pitch().orElseThrow(),
+                            v.receiver().velY().orElseThrow()
+                    }, foundedSolutions);
 
-            System.out.println("Table for " + s + "(" + foundedSolutions.size() + "): " + table);
+            System.out.println("Table for " + s + "(" + table.getArraySize() + "): " + table);
         });
     }
 
@@ -121,7 +124,8 @@ public class TNTRunYTest {
             yMove.add(firstReceived.posY().orElseThrow() - firstCall.posY().orElseThrow());
         }
 
-        String table = WolframMathematica.formatEntry(yMove.toArray());
-        System.out.println("Table(" + yMove.size() + "): " + table);
+        var table = new WolframMathematica()
+                .addArray(yMove.toArray());
+        System.out.println("Table(" + table.getArraySize() + "): " + table);
     }
 }

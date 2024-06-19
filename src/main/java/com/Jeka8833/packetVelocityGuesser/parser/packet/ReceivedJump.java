@@ -6,7 +6,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 public final class ReceivedJump implements Packet {
     public static final double SCALE = 8000D;

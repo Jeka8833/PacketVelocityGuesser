@@ -17,13 +17,17 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class BowSpleefXZTest {
-    private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
+    private static final Path PATH = Path.of("D:\\User\\Download\\jumpBackup\\analytic\\jumpInfoV4");
     private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
+
     private static final Guesser GUESSER = new Guesser(null, new BowSpleefVerticalGuesser());
 
 
@@ -58,27 +62,24 @@ public class BowSpleefXZTest {
         return jumps;
     }
 
-    private static String printXZTable(Collection<FoundedSolution> foundedSolutions) {
-        String table1 = WolframMathematica.toTable(foundedSolutions,
-                v -> v.position().yaw().orElseThrow(),
-                v -> {
+    private static WolframMathematica printXZTable(Iterable<FoundedSolution> foundedSolutions) {
+        return new WolframMathematica()
+                .processAndAddArray(v -> {
                     double val = v.receiver().velZ().orElseThrow() / v.position().pitchCos();
-                    if (Double.isFinite(val) && Math.abs(val) < 10_000) return val;
+                    if (Double.isFinite(val) && Math.abs(val) < 10_000) {
+                        return new Object[]{v.position().yaw().orElseThrow(), val};
+                    }
 
                     throw new RuntimeException("Not finite value");
-                }, e -> {
-                });
-        String table2 = WolframMathematica.toTable(foundedSolutions,
-                v -> v.position().yaw().orElseThrow() + 90,
-                v -> {
+                }, null, foundedSolutions)
+                .processAndAddArray(v -> {
                     double val = v.receiver().velX().orElseThrow() / v.position().pitchCos();
-                    if (Double.isFinite(val) && Math.abs(val) < 10_000) return val;
+                    if (Double.isFinite(val) && Math.abs(val) < 10_000) {
+                        return new Object[]{v.position().yaw().orElseThrow() + 90D, val};
+                    }
 
                     throw new RuntimeException("Not finite value");
-                }, e -> {
-                });
-
-        return table1.substring(0, table1.length() - 1) + "," + table2.substring(1);
+                }, null, foundedSolutions);
     }
 
     @Test
@@ -94,9 +95,9 @@ public class BowSpleefXZTest {
                 .collect(Collectors.groupingBy(FoundedSolution::jumpName));
 
         grouped.forEach((s, foundedSolutions) -> {
-            String table = printXZTable(foundedSolutions);
+            var wolframMathematica = printXZTable(foundedSolutions);
 
-            System.out.println("Table for " + s + "(" + foundedSolutions.size() / 2 + "): " + table);
+            System.out.println("Table for " + s + "(" + wolframMathematica.getArraySize() + "): " + wolframMathematica);
         });
     }
 }

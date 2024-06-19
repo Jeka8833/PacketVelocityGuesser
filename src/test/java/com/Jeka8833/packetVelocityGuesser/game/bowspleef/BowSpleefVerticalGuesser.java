@@ -15,6 +15,6 @@ public class BowSpleefVerticalGuesser implements VerticalJump {
         // Y Multiplier: (10400 - 800) / 2 = 4800
         // Y Offset: (10400 + 800) / 2 = 5600
 
-        return Map.of("Main", new InputTunnelConstants(5600, 4800));
+        return Map.of("Main", new InputTunnelConstants(5600, 4800), "Hypixel Bug", new InputTunnelConstants(3359D, 0D));
     }
 }
