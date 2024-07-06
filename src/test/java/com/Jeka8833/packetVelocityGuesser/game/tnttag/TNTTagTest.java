@@ -24,12 +24,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class TNTTagTest {
-    //private static final Path PATH = Path.of("D:\\User\\Download\\jumpBackup\\analytic\\jumpInfoV4");
-    //private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
+    private static final Path PATH = Path.of("D:\\User\\Download\\jumpBackup\\analytic\\jumpInfoV4");
+    private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
 
     //private static final Path PATH = Path.of("D:\\User\\Download\\New folder\\Fall Web Y.csv");
-    private static final Path PATH = Path.of("C:\\Users\\Jeka8833\\AppData\\Roaming\\.minecraft\\TNTClients-records\\PacketRecorder\\18.06.2024 23.25.csv");
-    private static final CsvFileParser SERVER_PARSER = new CsvFileParser();
+    //private static final Path PATH = Path.of("C:\\Users\\Jeka8833\\AppData\\Roaming\\.minecraft\\TNTClients-records\\PacketRecorder\\04.07.2024 22.39.csv");
+    //private static final Path PATH = Path.of("D:\\User\\Download\\23.06.2024 21.12.csv");
+    //private static final CsvFileParser SERVER_PARSER = new CsvFileParser();
 
     private static final FileFilter PACKET_FILTER = FileFilter.create()
             .add(GameInfoFilter.create()
@@ -50,7 +51,7 @@ public class TNTTagTest {
         Path[] files = CsvFileParser.getAllFilesInFolder(PATH);
         FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, false);
 
-        //packets = PACKET_FILTER.filter(packets);
+        packets = PACKET_FILTER.filter(packets);
 
         return Composer.toReceivedJump(packets);
     }
@@ -60,7 +61,7 @@ public class TNTTagTest {
         Path[] files = CsvFileParser.getAllFilesInFolder(PATH);
         FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, false);
 
-        packets = PACKET_FILTER.filter(packets);
+        //packets = PACKET_FILTER.filter(packets);
 
         var wolframMathematica = new WolframMathematica();
 
@@ -295,8 +296,8 @@ public class TNTTagTest {
     @Test
     public void test() {
         for (int i = 0; i < 20; i++) {
-            System.out.println("Tick: " + i + " Sprint: " + (int) (TNTTagCalculation.getYHitVelocity(0.47268, i, true) * 8000)
-                    + " Walk: " + (int) (TNTTagCalculation.getYHitVelocity(0.40268, i, false) * 8000));
+            System.out.println("Tick: " + i + " Sprint: " + (int) (TNTTagCalculation.getYHitVelocity(0.47, i, true) * 8000)
+                    + " Walk: " + (int) (TNTTagCalculation.getYHitVelocity(0.4, i, false) * 8000));
         }
     }
 }

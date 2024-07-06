@@ -9,8 +9,11 @@ import com.Jeka8833.packetVelocityGuesser.guesser.Guesser;
 import com.Jeka8833.packetVelocityGuesser.output.WolframMathematica;
 import com.Jeka8833.packetVelocityGuesser.parser.CsvFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.FilePackets;
+import com.Jeka8833.packetVelocityGuesser.parser.ServerStorageFileParser;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.FileFilter;
 import com.Jeka8833.packetVelocityGuesser.parser.filter.GameInfoFilter;
+import com.Jeka8833.packetVelocityGuesser.parser.packet.CallJump;
+import com.Jeka8833.packetVelocityGuesser.parser.packet.ReceivedJump;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -22,11 +25,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class TNTRunXZTest {
-    //private static final Path PATH = Path.of("D:\\TNTClientAnalytics\\jumpInfoV4\\");
-    //private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
+    private static final Path PATH = Path.of("D:\\User\\Download\\jumpBackup\\analytic\\jumpInfoV4\\");
+    private static final ServerStorageFileParser SERVER_PARSER = new ServerStorageFileParser();
 
-    private static final Path PATH = Path.of("C:\\Users\\Jeka8833\\AppData\\Roaming\\.minecraft\\TNTClients-records\\PacketRecorder\\31.05.2024 21.31.csv");
-    private static final CsvFileParser SERVER_PARSER = new CsvFileParser();
+    //private static final Path PATH = Path.of("C:\\Users\\Jeka8833\\AppData\\Roaming\\.minecraft\\TNTClients-records\\PacketRecorder\\31.05.2024 21.31.csv");
+    //private static final CsvFileParser SERVER_PARSER = new CsvFileParser();
 
     private static final Guesser GUESSER = new Guesser(null, new TNTRunVerticalGuesser());
 
@@ -35,7 +38,7 @@ public class TNTRunXZTest {
             .add(GameInfoFilter.create()
                     .mode()
                     .blockIfAbsent()
-                    .require(ServerConstants.Hypixel.Mode.TNTRun, ServerConstants.Hypixel.Mode.PVPRun)
+                    .require(ServerConstants.Hypixel.Mode.TNTRun/*, ServerConstants.Hypixel.Mode.PVPRun*/)
                     .build()
 
                     .serverBrand()
@@ -50,7 +53,7 @@ public class TNTRunXZTest {
         Path[] files = CsvFileParser.getAllFilesInFolder(PATH);
         FilePackets[] packets = SERVER_PARSER.parseAllFiles(files, true);
 
-        //packets = PACKET_FILTER.filter(packets);
+        packets = PACKET_FILTER.filter(packets);
 
         RawJump[] jumps = Composer.toRawJump(packets);
 
@@ -103,5 +106,31 @@ public class TNTRunXZTest {
         });
 
         Files.writeString(Paths.get("test.txt"), stringBuffer.toString());
+    }
+
+
+    @Test
+    public void printXZPingMove() throws IOException, ExecutionException {
+        RawJump[] jumps = readTestFiles();
+
+        List<Double> xzMove = new ArrayList<>();
+        for (RawJump jump : jumps) {
+            if (jump.calls().length == 0 || jump.jumps().length == 0)
+                continue;
+
+            CallJump firstCall = jump.calls()[0];
+            if (firstCall.posY().isEmpty()) continue;
+
+            ReceivedJump firstReceived = jump.jumps()[0];
+            if (firstReceived.posY().isEmpty()) continue;
+
+            xzMove.add(Math.hypot(firstReceived.posX().orElseThrow() - firstCall.posX().orElseThrow(),
+                    firstReceived.posZ().orElseThrow() - firstCall.posZ().orElseThrow()));
+        }
+
+        var table = new WolframMathematica()
+                .addArray(xzMove.toArray());
+        table.export("test.txt");
+        System.out.println("Table(" + table.getArraySize() + "): " + table);
     }
 }
